@@ -1,0 +1,38 @@
+mongodb://localhost/ixit
+DB Connected
+0
+[31mF[0m0
+[31mF[0m
+
+Failures:
+
+  1) v4ault methods should find an exisiting item
+   Message:
+     [31mExpected undefined to be defined.[0m
+   Stacktrace:
+     Error: Expected undefined to be defined.
+    at null.<anonymous> (/home/k0d3d/www/dk33p/test/v4ult.spec.js:36:28)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+
+  2) v4ault methods should find an exisiting item
+   Message:
+     [31mTypeError: Cannot read property 'length' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot read property 'length' of undefined
+    at null.<anonymous> (/home/k0d3d/www/dk33p/test/v4ult.spec.js:37:26)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+
+  3) v4ault methods should update an exisiting record
+   Message:
+     [31mExpected undefined to equal 1.[0m
+   Stacktrace:
+     Error: Expected undefined to equal 1.
+    at null.<anonymous> (/home/k0d3d/www/dk33p/test/v4ult.spec.js:56:26)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+
+Finished in 0.219 seconds
+[31m2 tests, 4 assertions, 3 failures, 0 skipped
+[0m
+
+Mongoose default connection disconnected
+Mongoose default connection disconnected through app termination

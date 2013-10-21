@@ -1,0 +1,46 @@
+{
+  "name": "IXIT-Media-Server",
+  "version": "0.0.0",
+  "description": "Handles file uploads and manages media ",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "uploads",
+    "secure",
+    "storage",
+    "media",
+    "storage",
+    "file",
+    "sharing"
+  ],
+  "author": "Mykel Koded Rhema",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "express": "~3.4.0",
+    "hashids": "~0.3.1"
+    "jade": "latest",
+    "mongoose": "latest",
+    "connect-mongo": "latest",
+    "connect-flash": "latest",
+    "passport": "latest",
+    "passport-local": "latest",
+    "passport-facebook": "latest",
+    "passport-twitter": "latest",
+    "passport-github": "latest",
+    "passport-google-oauth": "latest",
+    "underscore": "latest",
+    "async": "latest",
+    "view-helpers": "latest",
+    "mean-logger": "latest",
+    "forever": "latest",
+    "grunt": "latest",
+    "grunt-cli": "latest",
+    "grunt-bower-task": "latest",
+    "mongoose-unique-validator": "~0.1.0"    
+    "mongoose-paginate": "~1.1.5"
+  }
+}
