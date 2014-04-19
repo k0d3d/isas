@@ -17,8 +17,15 @@ describe("Utility Tests", function(){
 		//console.log(utility.uuid());
 	});
 
-	it("should test the cleanIdentifier method", function(){
+	xit("should test the cleanIdentifier method", function(){
 		var g = '5757-9564%%9<>88';
 		console.log(utility.cleanIdentifier(g));
+	});
+
+	it("should generate a valid mediaNumber", function(){
+		var k = utility.mediaNumber();
+		console.log(k);
+		expect(k).toBeDefined();
+		expect(k).toBeGreaterThan(0);
 	});
 });

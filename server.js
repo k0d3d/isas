@@ -1,108 +1,239 @@
 /*
-Module Dependencies
+Main application entry point
  */
-var express = require('express');
-var app = express();
-var fs = require('fs');
-var passport = require("passport"),
-    mongoStore = require('connect-mongo')(express),
+
+// pull in the package json
+var pjson = require('./package.json');
+console.log('ixit document service version: ' + pjson.version);
+
+// REQUIRE SECTION
+var express = require('express'),
+    router = express.Router(),
+    config = require('config'),
+    app = express(),
+    passport = require('passport'),
+    routes = require('./controllers/routes'),
+    logger = require('morgan'),
+    cookieParser = require('cookie-parser'),
+    methodOverride = require('method-override'),
+    bodyParser = require('body-parser'),
     flash = require('connect-flash'),
-    helpers = require('view-helpers'),
-    config = require('./config/config');
+    session = require('express-session'),
+    favicon = require('static-favicon'),
+    compress = require('compression'),
+    mongoosastic = require('mongoosastic'),
+    restler = require('restler'),
+    color = require('colors'),
+    helpers = require('view-helpers');
+var MongoStore = require('connect-mongo')(session);
 
-//Load configurations
-//if test env, load example file
-var env = process.env.NODE_ENV = process.env.NODE_ENV || 'development',
-    config = require('./config/config'),
-    auth = require('./config/middlewares/authorization'),
-    mongoose = require('mongoose');
+
+// set version
+app.set('version', pjson.version);
+
+// port
+var port = process.env.PORT || 3001;
 
 
-//Bootstrap models
-var models_path = __dirname + '/app/models';
-fs.readdirSync(models_path).forEach(function(file) {
-    require(models_path + '/' + file);
+function afterResourceFilesLoad() {
+
+    console.log('configuring application, please wait...');
+
+
+    console.log('Loading ' + 'passport'.inverse + ' config...');
+    try {
+      require('./lib/passport.js')(passport);
+    } catch(e) {
+      console.log(e);
+    }
+    
+
+    app.set('showStackError', true);
+
+
+    // make everything in the public folder publicly accessible - do this high up as possible
+    app.use(express.static(__dirname + '/public'));
+
+    // set compression on responses
+    app.use(compress({
+      filter: function (req, res) {
+        return /json|text|javascript|css/.test(res.getHeader('Content-Type'));
+      },
+      level: 9
+    }));
+
+    // efficient favicon return - will enable when we have a favicon
+    app.use(favicon('public/images/favicon.ico'));
+
+
+    app.locals.layout = false;
+    app.set('views', __dirname + '/views');
+    app.set('view engine', 'jade');
+
+
+    // set logging level - dev for now, later change for production
+    app.use(logger('dev'));
+
+
+    // expose package.json to views
+    app.use(function (req, res, next) {
+      res.locals.pkg = pjson;
+      next();
+    });      
+
+    // signed cookies
+    app.use(cookieParser(config.express.secret));
+
+    app.use(bodyParser());
+    app.use(methodOverride());
+
+    // setup session management
+    console.log('setting up session management, please wait...');
+    app.use(session({
+        secret: config.express.secret,
+        store: new MongoStore({
+            db: config.db.database,
+            host: config.db.server,
+            port: config.db.port,
+            auto_reconnect: true,
+            username: config.db.user,
+            password: config.db.password,
+            collection: "mongoStoreSessions"
+        })
+    }));
+
+    //Initialize Passport
+    app.use(passport.initialize());
+
+    //enable passport sessions
+    app.use(passport.session());
+
+
+    // connect flash for flash messages - should be declared after sessions
+    app.use(flash());
+
+    // should be declared after session and flash
+    app.use(helpers(pjson.name));
+
+    // set our default view engine
+    app.set('views', __dirname + '/views');
+    app.set('view engine', 'jade');
+
+
+    //pass in the app config params in to locals
+    app.use(function(req, res, next) {
+
+        res.locals.app = config.app;
+        next();
+
+    });
+
+    // our router
+    //app.use(app.router);
+
+
+    // test route - before anything else
+    console.log('setting up test route /routetest');
+
+    app.route('/routetest')
+    .get(function(req, res) {
+        res.send('IXIT Document Server is running');
+    });
+
+
+    // our routes
+    console.log('setting up routes, please wait...');
+    routes(app, passport);
+
+
+    // assume "not found" in the error msgs
+    // is a 404. this is somewhat silly, but
+    // valid, you can do whatever you like, set
+    // properties, use instanceof etc.
+    app.use(function(err, req, res, next){
+      // treat as 404
+      if  ( err.message &&
+          (~err.message.indexOf('not found') ||
+          (~err.message.indexOf('Cast to ObjectId failed'))
+          )) {
+        return next();
+      }
+
+      // log it
+      // send emails if you want
+      console.error(err.stack);
+
+      // error page
+      //res.status(500).json({ error: err.stack });
+      //res.json(500, err.message);
+      res.status(500).render('500', {
+        url: req.originalUrl,
+        error: err.message
+      });
+    });
+
+    // assume 404 since no middleware responded
+    app.use(function(req, res){
+      if (req.xhr) {
+        res.json(404, {message: 'resource not found'});
+      } else {
+        res.status(404).render('404', {
+          url: req.originalUrl,
+          error: 'Not found'
+        });        
+      }
+
+    });      
+
+
+    // development env config
+    if (process.env.NODE_ENV == 'development') {
+      app.locals.pretty = true;
+    }
+
+}
+
+
+console.log("Running Environment: %s", process.env.NODE_ENV);
+
+console.log("Checking connection to ElasticSearch Server...");
+restler.get('http://' + config.es.url + ':' + config.es.port)
+.on('success', function (data) {
+  if (data.status === 200) {
+    console.log('ES running on ' + config.es.url + ':' + config.es.port);
+  }
+})
+.on('error', function (data) {
+  console.log('Error Connecting to ES on ' + config.es.url + ':' + config.es.port);
 });
 
-//bootstrap passport config
-require('./config/passport')(passport);
+console.log("Setting up database communication...");
+// setup database connection
+require('./lib/db').open()
+.then(function () {
+  console.log('Connection open...');
+  afterResourceFilesLoad();
 
-app.set('showStackError', true);
+  // actual application start
+  app.listen(port);
+  console.log('IXIT Document Service started on port '+port);
 
-//Enable jsonp
-app.enable("jsonp callback");
-
-app.use(express.logger());
-
-//cookieParser should be above session
-app.use(express.cookieParser());
-
-//bodyParser should be above methodOverride
-app.use(express.bodyParser());
-
-app.use(express.methodOverride());
-
-//express/mongo session storage
-app.use(express.session({
-    secret: 'hell12sex12fury',
-    store: new mongoStore({
-        url: config.db,
-        collection: 'sessions'
-    })
-}));
-
-//connect flash for flash messages
-app.use(flash());
-
-//dynamic helpers
-app.use(helpers(config.app.name));
-
-//use passport session
-app.use(passport.initialize());
-app.use(passport.session());
-
-//CSRF protection for form-submission
-//app.use(express.csrf());
-app.use(function(req, res, next){
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE, OPTIONS');
-  next();
-});
-
-//routes should be at the last
-app.use(app.router);
-
-//Assume "not found" in the error msgs is a 404. this is somewhat silly, but valid, you can do whatever you like, set properties, use instanceof etc.
-app.use(function(err, req, res, next) {
-    //Treat as 404
-    if (~err.message.indexOf('not found')) return next();
-
-    //Log it
+  // expose app
+  exports = module.exports = app;
+  // CATASTROPHIC ERROR
+  app.use(function(err, req, res){
+    
     console.error(err.stack);
+    
+    // make this a nicer error later
+    res.send(500, 'Ewww! Something got broken on IXIT. Getting some tape and glue');
+    
+  });
 
-    //Error page
-    res.json(500);
-    console.log(err);
-    // res.status(500).render('500', {
-    //     error: err.stack
-    // });
+})
+.catch(function (e) {
+  console.log(e);
 });
 
-//Assume 404 since no middleware responded
-app.use(function(req, res, next) {
-    res.json(400, {});
-    //next();
-    // res.status(404).render('404', {
-    //     url: req.originalUrl,
-    //     error: 'Not found'
-    // });
-});
 
-//Bootstrap routes
-require('./config/routes')(app, passport, auth);
 
-app.listen(3000);
-console.log('IXIT File Server Started on port:'+ 3000);
-
-//expose app
-exports = module.exports = app;

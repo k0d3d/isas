@@ -7,7 +7,7 @@ describe("All Cabinet Methods", function(){
 	beforeEach(function(){
 		completed = false
 	});
-	it("should count the total files a user has", function(){
+	xit("should count the total files a user has", function(){
 		runs(function(){
 			cabinet.countUserFiles(userId, function(count){
 				result = count;
@@ -23,7 +23,7 @@ describe("All Cabinet Methods", function(){
 			expect(result).toBeDefined();
 		})
 	});
-	it("should list the files a user has uploaded", function(){
+	xit("should list the files a user has uploaded", function(){
 		runs(function(){
 			var options = {};
 			cabinet.findUserFiles(userId, options, function(r){
@@ -43,7 +43,7 @@ describe("All Cabinet Methods", function(){
 			expect(typeof(result)).toEqual("object");
 		});
 	});
-	it("should list the files a user has uploaded", function(){
+	xit("should list the files a user has queued", function(){
 		runs(function(){
 			var options = {};
 			cabinet.findUserQueue(userId, options, function(r){
@@ -62,9 +62,34 @@ describe("All Cabinet Methods", function(){
 			expect(result).toBeDefined();
 			expect(typeof(result)).toEqual("object");
 		});
-	});	
+	});
+	it("should move a file to trash", function(){
+		runs(function(){
+			var options = {};
+			var obj = {
+				fileId : "52640dbc4d7e471a08000001",
+				identifier : "6966784-ggggavi"
+			}
+			cabinet.deleteFileRecord(obj, function(r){
+				result = r;
+				completed = true;
+			});
+		});
+
+		waitsFor(function(){
+			return completed;
+		});
+
+		runs(function(){
+			//console.log("%s waiting", result.length);
+			console.log(result);
+			expect(result).toBeDefined();
+			//expect(typeof(result)).toEqual("object");
+		});		
+	});
+
 	afterEach(function(){
-		completed = false;
-		result = undefined;
+		//completed = false;
+		//result = undefined;
 	});
 });

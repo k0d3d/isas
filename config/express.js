@@ -5,6 +5,7 @@ var express = require('express'),
     mongoStore = require('connect-mongo')(express),
     flash = require('connect-flash'),
     helpers = require('view-helpers'),
+    downloader = require('./lib/downloader.js'),
     config = require('./config');
 
 module.exports = function(app, passport) {
@@ -36,7 +37,7 @@ module.exports = function(app, passport) {
 
     app.configure(function() {
         //cookieParser should be above session
-        app.use(express.cookieParser());
+        app.use(express.cookieParser('644gkCfvbY91CCIihyn4'));
 
         //bodyParser should be above methodOverride
         app.use(express.bodyParser());
@@ -61,6 +62,11 @@ module.exports = function(app, passport) {
         //use passport session
         app.use(passport.initialize());
         app.use(passport.session());
+
+        app.use(downloader());
+        express.response.issueDownload = function(r , p){
+            console.log(r, p);
+        };
 
         //CSRF protection for form-submission
         // app.use(express.csrf());

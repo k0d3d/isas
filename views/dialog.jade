@@ -1,0 +1,11 @@
+extends ../layouts/default
+
+block content
+  form(action="/oauth/authorize/decision",method="post")
+    input(name="transaction_id",type="hidden",value=transactionId)
+    div
+      input(type="submit",value="Allow",id="allow")
+      input(type="submit",value="Deny",name="cancel",id="deny")
+
+  script(type="text/javascript").
+    window.user = !{user};

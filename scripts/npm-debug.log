@@ -1,0 +1,75 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/local/bin/node', '/usr/local/bin/npm', 'install' ]
+2 info using npm@1.2.18
+3 info using node@v0.10.4
+4 verbose read json /home/k0d3d/www/dk33p/scripts/package.json
+5 warn package.json @ No README.md file found!
+6 verbose readDependencies using package.json deps
+7 verbose install where, deps [ '/home/k0d3d/www/dk33p/scripts', [ 'simple-oauth2' ] ]
+8 verbose from cache /home/k0d3d/www/dk33p/scripts/package.json
+9 info preinstall @
+10 verbose from cache /home/k0d3d/www/dk33p/scripts/package.json
+11 verbose readDependencies using package.json deps
+12 verbose cache add [ 'simple-oauth2@~0.1.7', null ]
+13 verbose cache add name=undefined spec="simple-oauth2@~0.1.7" args=["simple-oauth2@~0.1.7",null]
+14 verbose parsed url { protocol: null,
+14 verbose parsed url   slashes: null,
+14 verbose parsed url   auth: null,
+14 verbose parsed url   host: null,
+14 verbose parsed url   port: null,
+14 verbose parsed url   hostname: null,
+14 verbose parsed url   hash: null,
+14 verbose parsed url   search: null,
+14 verbose parsed url   query: null,
+14 verbose parsed url   pathname: 'simple-oauth2@~0.1.7',
+14 verbose parsed url   path: 'simple-oauth2@~0.1.7',
+14 verbose parsed url   href: 'simple-oauth2@~0.1.7' }
+15 verbose cache add name="simple-oauth2" spec="~0.1.7" args=["simple-oauth2","~0.1.7"]
+16 verbose parsed url { protocol: null,
+16 verbose parsed url   slashes: null,
+16 verbose parsed url   auth: null,
+16 verbose parsed url   host: null,
+16 verbose parsed url   port: null,
+16 verbose parsed url   hostname: null,
+16 verbose parsed url   hash: null,
+16 verbose parsed url   search: null,
+16 verbose parsed url   query: null,
+16 verbose parsed url   pathname: '~0.1.7',
+16 verbose parsed url   path: '~0.1.7',
+16 verbose parsed url   href: '~0.1.7' }
+17 verbose addNamed [ 'simple-oauth2', '~0.1.7' ]
+18 verbose addNamed [ null, '>=0.1.7- <0.2.0-' ]
+19 silly lockFile b8f3dd54-simple-oauth2-0-1-7 simple-oauth2@~0.1.7
+20 verbose lock simple-oauth2@~0.1.7 /home/k0d3d/.npm/b8f3dd54-simple-oauth2-0-1-7.lock
+21 silly addNameRange { name: 'simple-oauth2',
+21 silly addNameRange   range: '>=0.1.7- <0.2.0-',
+21 silly addNameRange   hasData: false }
+22 verbose url raw simple-oauth2
+23 verbose url resolving [ 'https://registry.npmjs.org/', './simple-oauth2' ]
+24 verbose url resolved https://registry.npmjs.org/simple-oauth2
+25 info trying registry request attempt 1 at 19:00:37
+26 http GET https://registry.npmjs.org/simple-oauth2
+27 info retry will retry, error on last attempt: Error: connect EHOSTUNREACH
+28 info trying registry request attempt 2 at 19:00:56
+29 http GET https://registry.npmjs.org/simple-oauth2
+30 info retry will retry, error on last attempt: Error: connect EHOSTUNREACH
+31 info trying registry request attempt 3 at 19:02:01
+32 http GET https://registry.npmjs.org/simple-oauth2
+33 silly lockFile b8f3dd54-simple-oauth2-0-1-7 simple-oauth2@~0.1.7
+34 silly lockFile b8f3dd54-simple-oauth2-0-1-7 simple-oauth2@~0.1.7
+35 error Error: connect EHOSTUNREACH
+35 error     at errnoException (net.js:883:11)
+35 error     at Object.afterConnect [as oncomplete] (net.js:874:19)
+36 error If you need help, you may report this log at:
+36 error     <http://github.com/isaacs/npm/issues>
+36 error or email it to:
+36 error     <npm-@googlegroups.com>
+37 error System Linux 2.6.32-358.14.1.el6.x86_64
+38 error command "/usr/local/bin/node" "/usr/local/bin/npm" "install"
+39 error cwd /home/k0d3d/www/dk33p/scripts
+40 error node -v v0.10.4
+41 error npm -v 1.2.18
+42 error syscall connect
+43 error code EHOSTUNREACH
+44 error errno EHOSTUNREACH
+45 verbose exit [ 1, true ]

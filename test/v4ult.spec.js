@@ -2,6 +2,7 @@ describe("v4ault methods", function(){
 	var Media = require("../app/models/media.js");
 	var V = require("../app/controllers/v4ult.js").v4ult;
 	var v = new V();
+	var fs = require("fs");
 	var h = {
 		progress: 1,
 		filename: 'gggg.avi',
@@ -18,7 +19,7 @@ describe("v4ault methods", function(){
 		completed = false;
 		result = {};
 	});
-	it("should save and find an item", function(){
+	xit("should save and find an item", function(){
 		runs(function(){
 			v.save(h, function(t){
 				result = t;
@@ -41,7 +42,7 @@ describe("v4ault methods", function(){
 		})
 	})
 
-	it("should update an exisiting record", function(){
+	xit("should update an exisiting record", function(){
 		h.progress = 2;
 		runs(function(){
 			v.save(h, function(t){
@@ -57,6 +58,28 @@ describe("v4ault methods", function(){
 		runs(function(){
 			expect(result.updated).toEqual(1);
 		});
+	});
+	it("should delete a file from the file system", function(){
+		// var fileStream = fs.createWriteStream("./v4nish/tempTest.txt");
+		// fileStream.once('open', function(fd){
+		// 	fileStream.write("Testing Text");
+		// 	fileStream.end();
+		// });	
+		runs(function(){			
+			v.delete("test", function(r){
+				result.deleted = r;
+				completed = true;
+			});
+		});
+
+		waitsFor(function(){
+			return completed;
+		});
+
+		runs(function(){
+			console.log(result);
+			expect(result.deleted).toBeDefined();
+		});		
 	});
 	afterEach(function(){
 		completed = false;
