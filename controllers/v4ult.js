@@ -272,7 +272,8 @@ exports.routes = function(app){
   // Handle uploads through Resumable.js
   app.post('/upload', cors, function(req, res){
     var fields = req.body;
-    var files = req.files;    
+    var files = req.files;   
+    console.log(fields, files); 
     //CORS Headers
     v4ult.postHandler(fields, files, function(status){
       //Send appoproiate response
