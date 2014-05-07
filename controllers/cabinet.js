@@ -9,6 +9,7 @@ Folder = mongoose.model('Folder'),
 EventRegister = require('../lib/event_register').register,
 _ = require("underscore"),
 config = require('config'),
+Q = require('q'),
 V4ult = require("./v4ult").v4ult;
 
 
@@ -22,6 +23,27 @@ function CabinetObject(){
 }
 
 CabinetObject.prototype.constructor = CabinetObject;
+
+/**
+ * Returns the properties of the folder queried
+ * @return {[type]} [description]
+ */
+CabinetObject.prototype.requestSubFolder = function (userId, id) {
+  var re = Q.defer();
+
+  Folder.findOne({
+    owner: userId,
+    _id: id
+  })
+  .exec(function (err, i) {
+    if (err) {
+      return re.reject(err);
+    } else {
+      return re.resolve(i);
+    }
+  });
+  return re.promise;
+};
 
 /**
  * [findUserFiles description]
@@ -56,6 +78,18 @@ CabinetObject.prototype.openUserFolder = function(userId, options, cb){
   var folder = {};
 
   var self = this;
+  register.once('requestFolder', function(data, isDone){
+    self.requestSubFolder(userId, options.id)
+    .then(function(r){
+      folder.props = r;
+      isDone(data);
+
+    })
+    .catch(function (err) {
+      isDone(data);
+    });
+  });
+
   register.once('fetchFiles', function(data, isDone){
     self.findUserFiles(userId, {folder: options.id}, function(r){
       if(_.isEmpty(r)){
@@ -82,7 +116,7 @@ CabinetObject.prototype.openUserFolder = function(userId, options, cb){
 
 
   register
-  .queue('fetchFiles', 'fetchFolders')
+  .queue('requestFolder', 'fetchFiles', 'fetchFolders')
   .onError(function(err){
     cb(err);
   })

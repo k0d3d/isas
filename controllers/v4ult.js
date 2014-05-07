@@ -143,6 +143,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     if(chunkNumber === totalChunks){
       //Create writeableStream. 
       //Happens ONCE. after ^
+      console.log(process.env.APP_HOME);
       var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', identifier);
       var stream = fs.createWriteStream(filepath);
 
@@ -200,7 +201,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     var chunkFilename = utility.getChunkFilename(chunkNumber, identifier);
     
     eventRegister
-    .queue('moveFile', 'checkFolder', 'saveFile', 'write', 'deleteTemp')
+    .queue('moveFile', 'checkFolder', 'write', 'saveFile', 'deleteTemp')
     .onEnd(function(data){
       callback(1);
     })
@@ -273,9 +274,9 @@ exports.routes = function(app){
   app.post('/upload', cors, function(req, res){
     var fields = req.body;
     var files = req.files;   
-    console.log(fields, files); 
     //CORS Headers
     v4ult.postHandler(fields, files, function(status){
+      console.log(status);
       //Send appoproiate response
       if(status === 1){
         res.json(200, {status: 'done'});
