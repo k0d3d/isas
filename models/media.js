@@ -7,6 +7,7 @@ var mongoose = require('mongoose'),
     authTypes = ['twitter', 'facebook', 'google'],
     mongoosastic = require('mongoosastic'),
     config = require('config'),
+    hashr = require('../lib/hash.js'),
     uniqueValidator = require('mongoose-unique-validator');
 
 
@@ -25,6 +26,9 @@ var MediaSchema = new Schema({
 	mediaNumber: {type: Number},
 	tags:{type: String, index: true, es_indexed:true},
 	folder: {type: Schema.ObjectId, ref: 'Folder'}
+}, {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true }	
 });
 
 /**
@@ -44,7 +48,39 @@ var FolderSchema = new Schema({
 	owner: {type: String},
 	visible: {type: Number, default: 1},
 	created: {type: Date, default: Date.now}
+}, {
+  toObject: { virtuals: true, getters: true },
+  toJSON: { virtuals: true, getters: true }	
 });
+
+/**
+ * Virtuals, Getters & Setters
+ */
+FolderSchema.virtual('fid')
+.get(function () {
+	return hashr.hashOid(this._id.toString());
+	// return 'main street';
+});
+
+MediaSchema.virtual('ixid')
+.get(function () {
+	return hashr.hashInt(this.mediaNumber);
+});
+
+MediaSchema.path('folder')
+.get(function (v) {
+	return hashr.hashOid(v.toString());
+});
+
+FolderSchema.path('parent')
+.get(function (v) {
+	if (v) {
+		return hashr.hashOid(v.toString());
+	} else {
+		return '';
+	}
+});
+
 /*
 Media Statics
  */
@@ -113,6 +149,10 @@ MediaSchema.statics = {
 		});
 	}
 };
+
+/**
+ * plugin
+ */
 
 MediaSchema.plugin(mongoosastic, {
 	host: config.es.url,

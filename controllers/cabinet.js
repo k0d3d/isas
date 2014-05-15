@@ -28,7 +28,7 @@ CabinetObject.prototype.constructor = CabinetObject;
  * Returns the properties of the folder queried
  * @return {[type]} [description]
  */
-CabinetObject.prototype.requestSubFolder = function (userId, id) {
+CabinetObject.prototype.requestFolderProps = function requestFolderProps (userId, id) {
   var re = Q.defer();
 
   Folder.findOne({
@@ -39,20 +39,24 @@ CabinetObject.prototype.requestSubFolder = function (userId, id) {
     if (err) {
       return re.reject(err);
     } else {
-      return re.resolve(i);
+      return re.resolve(i.toJSON());
     }
   });
   return re.promise;
 };
 
 /**
- * [findUserFiles description]
+ * find files belonging to a certain user. An optional
+ * options argument can be passed through to filter
+ * the results. 
  * @param  {[type]}   userId   [description]
- * @param  {[type]}   options  [description]
+ * @param  {object}   options  Query parameters to filter results. 
+ * 'id' here is the folderId used for this query.
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
- CabinetObject.prototype.findUserFiles = function(userId, options, callback){
+ CabinetObject.prototype.findUserFiles = function findUserFiles (userId, options, callback){
+
   Media.userFiles(userId, options, function(i){
     if(i.length === 0){
       callback({});
@@ -70,7 +74,7 @@ CabinetObject.prototype.requestSubFolder = function (userId, id) {
  * @param  {Function} cb      [description]
  * @return {[type]}           [description]
  */
-CabinetObject.prototype.openUserFolder = function(userId, options, cb){
+CabinetObject.prototype.openUserFolder = function openUserFolder (userId, options, cb){
   //Event Register Instance
   var register = new EventRegister();
 
@@ -79,7 +83,7 @@ CabinetObject.prototype.openUserFolder = function(userId, options, cb){
 
   var self = this;
   register.once('requestFolder', function(data, isDone){
-    self.requestSubFolder(userId, options.id)
+    self.requestFolderProps(userId, options.id)
     .then(function(r){
       folder.props = r;
       isDone(data);
@@ -203,7 +207,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
   Media.countUserFiles(userId, function(count){
     callback(count);
   });
-}
+};
 
 /**
  * [deleteFileRecord description]

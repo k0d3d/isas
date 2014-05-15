@@ -10,6 +10,8 @@ var fs = require('fs'),
     Cabinet = require('./cabinet').cabinet,
     config = require('config'),
     cors = require('../lib/middlewares/cors'),
+    mime = require('mime'),
+    hashr = require('../lib/hash.js'),
     _ = require('underscore');
 
 //V4ult Class
@@ -97,29 +99,34 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   var self = this;
 
-  var chunkNumber = fields.resumableChunkNumber;
-  var chunkSize = fields.resumableChunkSize;
-  var totalSize = fields.resumableTotalSize;
-  var identifier = utility.cleanIdentifier(fields.throne+ '-' +fields.resumableIdentifier);
-  var filename = fields.resumableFilename;
-  var original_filename = fields.resumableIdentifier;
-  var totalChunks = fields.resumableTotalChunks;
+  var chunkNumber = fields.flowChunkNumber;
+  var chunkSize = fields.flowChunkSize;
+  var totalSize = fields.flowTotalSize;
+  var identifier = utility.cleanIdentifier(fields['x-Authr']+ '-' +fields.flowIdentifier);
+  var filename = fields.flowFilename;
+  var original_filename = fields.flowIdentifier;
+  var totalChunks = fields.flowTotalChunks;
   var sum = fields.sum;
-  var filetype = fields.fileType;
-  var owner = fields.throne;
+  var filetype = mime.lookup(fields.flowFilename);
+  var owner = fields['x-Authr'];
+  var folder = hashr.unhashOid(fields.folder);
 
   eventRegister.on('checkFolder', function(data, isDone){
     var cabinet = new Cabinet();
-    cabinet.createFolder({
-      name: data.name || 'Home',
-      owner: data.owner,
-      fileId: data.fileId,
-      type: (data.parent) ? 'sub': 'root'
-    }, function(r){
-      console.log(r);
-      data.folder = r._id;
+    if (!data.folder) {    
+      cabinet.createFolder({
+        name: data.name || 'Home',
+        owner: data.owner,
+        fileId: data.fileId,
+        type: (data.parent) ? 'sub': 'root'
+      }, function(r){
+        console.log(r);
+        data.folder = r._id;
+        isDone(data);
+      });
+    } else {
       isDone(data);
-    });
+    }
   });
 
   eventRegister.on('saveFile', function(data, isDone){
@@ -182,6 +189,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
           sum : sum,
           owner: owner,
           type: filetype,
+          folder: folder,
           completedDate: chunkNumber === totalChunks ? Date.now() : ''
         };
         isDone(tosaveObj);
@@ -224,11 +232,11 @@ V4ult.prototype.postHandler = function (fields, files, callback){
  */
 V4ult.prototype.getHandler = function  (param, cb){
   var utility = new Utility();
-  var chunkNumber = param('resumableChunkNumber', 0);
-  var chunkSize = param('resumableChunkSize', 0);
-  var totalSize = param('resumableTotalSize', 0);
-  var identifier = param('throne', '')+ '-' +param('resumableIdentifier', '');
-  var filename = param('resumableFilename', '');
+  var chunkNumber = param('flowChunkNumber', 0);
+  var chunkSize = param('flowChunkSize', 0);
+  var totalSize = param('flowTotalSize', 0);
+  var identifier = param('throne', '')+ '-' +param('flowIdentifier', '');
+  var filename = param('flowFilename', '');
   var owner = param('throne', '');
 
   if(utility.validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename)=='valid') {
@@ -270,7 +278,7 @@ exports.v4ult = V4ult;
 var v4ult = new V4ult();
 
 exports.routes = function(app){
-  // Handle uploads through Resumable.js
+  // Handle uploads through flow.js
   app.post('/upload', cors, function(req, res){
     var fields = req.body;
     var files = req.files;   
@@ -300,7 +308,7 @@ exports.routes = function(app){
   });
 
 
-  // Handle status checks on chunks through Resumable.js
+  // Handle status checks on chunks through flow.js
   app.get('/upload',cors, function(req, res, next){
 
     v4ult.getHandler(req.param, function(r){
