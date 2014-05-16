@@ -130,20 +130,22 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   });
 
   eventRegister.on('saveFile', function(data, isDone){
-    if(parseInt(data.chunkNumber, 10) === 1 || chunkNumber === totalChunks){
+    // if(parseInt(data.chunkNumber) === 1 || chunkNumber === totalChunks){
       //TODO:: log file save / upload completed
       //This saves the file record and just outputs the saved object
       //isDone is called so the upload can process without 
       //waiting for the save method to complete.
-      self.save(data, function(i){
-        util.puts(i);
+      process.nextTick(function() {
+        self.save(data, function(i){
+          util.puts(i);
+        });
       });
       //Continue the upload process
       isDone(data);
-    }else{
-      //Continue uploading chunkks
-      isDone(data);
-    }
+    // }else{
+    //   //Continue uploading chunkks
+    //   isDone(data);
+    // }
   });
 
   eventRegister.on('write', function(data, isDone){

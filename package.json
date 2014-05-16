@@ -64,7 +64,8 @@
     "q": "~1.0.1",
     "colors": "~0.6.2",
     "lodash": "~2.4.1",
-    "formidable": "latest"
+    "formidable": "latest",
+    "common-errors": "~0.4.6"
   },
   "devDependencies": {
     "grunt": "~0.4.2",

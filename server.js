@@ -26,6 +26,8 @@ var express = require('express'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
     uploader = require('./lib/uploader.js'),
+    errors = require('./lib/errors'),  
+    crashProtector = require('common-errors').middleware.crashProtector,      
     helpers = require('view-helpers');
 var MongoStore = require('connect-mongo')(session);
 
@@ -49,9 +51,13 @@ function afterResourceFilesLoad() {
       console.log(e);
     }
     
-
     app.set('showStackError', true);
 
+    console.log('Enabling crash protector...');
+    app.use(crashProtector());
+
+    console.log('Enabling error handling...');
+    app.use(errors.init());
 
     // make everything in the public folder publicly accessible - do this high up as possible
     app.use(express.static(__dirname + '/public'));

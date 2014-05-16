@@ -9,6 +9,7 @@ Folder = mongoose.model('Folder'),
 EventRegister = require('../lib/event_register').register,
 _ = require("underscore"),
 config = require('config'),
+errors = require('../lib/errors.js').nounce,
 Q = require('q'),
 V4ult = require("./v4ult").v4ult;
 
@@ -428,6 +429,88 @@ CabinetObject.prototype.createFolder = function(props, cb){
   });
 };
 
+/**
+ * deletes a folder from the db. The folder 
+ * must be empty i.e. contain no files or 
+ * sub folders for the removal to be successful.
+ * @param  {object}   obj An object with folderId and userId
+ * properties
+ * @param  {Function} cb  Callback to execute when complete.
+ * @return {Boolean}       Boolean
+ */
+CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, cb) {
+  var register = new EventRegister();
+
+  var self = this;
+
+  register.once('findFolder', function (data, isDone) {
+    //find folder,
+    Folder
+    .findOne(data)
+    .exec(function(err, folder){
+      if (err) {
+        isDone(err);
+      }
+      if (!folder) {
+        return isDone(errors('FolderNotFoundError'));
+      }
+      isDone(folder);
+
+    });
+  });
+
+  register.once('fetchFiles', function (data, isDone) {
+    self.findUserFiles(userId, {folder: data._id}, function(r){
+      if(_.isEmpty(r)){
+        //passing on the mongoose object.
+        //meaning the folder doesnt have any files
+        isDone(data);
+      }else{
+        isDone(errors('FolderHasError'));
+      }
+    });    
+  });
+  register.once('fetchSubFolders', function (data, isDone) {
+    self.findSubFolder(userId, {id: data._id}, function(r){
+      if(_.isEmpty(r)){
+        //passing on the mongoose object.
+        //meaning the folder doesnt have any sub folders
+        isDone(data);
+      }else{
+        isDone(errors('FolderHasError'));
+      }      
+    });    
+  });
+  register.once('removeFolder', function (data, isDone) {
+      //data is a mongoose object with
+      //a remove method
+      data.remove(function (err, done) {
+        if (err) {
+          cb(err);
+        }
+        if (!done) {
+          cb(errors('FolderRemoveError'));
+        }
+        cb(true);
+      });
+  });
+
+  //find folder files,
+  //delete folder files,
+  //delete folder
+  //send response
+  
+  register
+  .queue('findFolder', 'fetchFiles', 'fetchSubFolders', 'removeFolder')
+  .onError(function (err) {
+    cb(err);
+  })
+  .onEnd(function (r) {
+    cb(r);
+  })
+  .start(obj);
+};
+
 module.exports.cabinet =  CabinetObject;
 
 var cabinet = new CabinetObject();
@@ -436,7 +519,7 @@ var cabinet = new CabinetObject();
 module.exports.routes = function(app){
 
   //Request the home folderId 
-  app.get('/user/:userId/home', function(req,res, next){
+  app.get('/users/:userId/home', function(req,res, next){
     cabinet.findUserHome(req.param('userId'),
       function(r){
         if(util.isError(r)){ 
@@ -448,7 +531,7 @@ module.exports.routes = function(app){
   });
 
   //Request all files belonging to a user
-  app.get('/user/:userId/files', function(req,res, next){
+  app.get('/users/:userId/files', function(req,res, next){
     var page = req.body.page || 0;
     var limit = req.body.limit || 10;
     cabinet.findUserFiles(req.param('userId'), {page: page, limit: limit},
@@ -462,7 +545,7 @@ module.exports.routes = function(app){
   });
 
   //Request for uncompleted uploads
-  app.get('/user/:userId/queue', function(req, res, next){
+  app.get('/users/:userId/queue', function(req, res, next){
     var page = req.body.page || 0;
     var limit = req.body.limit || 10;
     cabinet.findUserQueue(req.param('userId'), {page: page, limit: limit},
@@ -476,7 +559,7 @@ module.exports.routes = function(app){
   });
 
   //Request for a file to be served / downloaded
-  app.get('/user/media/:mediaId', function(req, res, next){
+  app.get('/users/media/:mediaId', function(req, res, next){
     var mediaId = req.params.mediaId;
     cabinet.getFile(mediaId, function(r){
       if(util.isError(r) || _.isEmpty(r)){
@@ -510,7 +593,7 @@ module.exports.routes = function(app){
   });
 
   //Shows the amount of diskspace and files uploaded by a user
-  app.get('/user/:userId/media/count', function(req, res, next){
+  app.get('/users/:userId/media/count', function(req, res, next){
     cabinet.count(req.params.userId, function(r){
       if(util.isError(r)){
         next(r);
@@ -521,7 +604,7 @@ module.exports.routes = function(app){
   });
 
   //Request a folders content
-  app.get('/user/:userId/folder', function(req, res, next){
+  app.get('/users/:userId/folder', function(req, res, next){
     cabinet.openUserFolder(req.params.userId, req.query, function(r){
       if(util.isError(r)){
         next(r);
@@ -532,7 +615,7 @@ module.exports.routes = function(app){
   });
 
   //Creates a new folder and response wit the folder
-  app.post('/user/:userId/folder', function(req, res, next){
+  app.post('/users/:userId/folder', function(req, res, next){
     cabinet.createFolder({
       owner: req.params.userId,
       name: req.body.name,
@@ -548,7 +631,7 @@ module.exports.routes = function(app){
   });
 
   //Updates tags belonging to a file
-  app.put('/user/:userId/file/:fileId/tags', function(req, res, next){
+  app.put('/users/:userId/file/:fileId/tags', function(req, res, next){
     var tags = req.body.tags;
     var file_id = req.params.fileId;
     var owner = req.params.userId;
@@ -561,30 +644,45 @@ module.exports.routes = function(app){
     });
   });
 
-    app.del('/user/:userId/file/:fileId', function(req, res, next){
-      var obj = {
-        fileId: req.params.fileId,
-        userId: req.params.userId,
-        identifier: req.body.identifier
-      };
-      cabinet.deleteFileRecord(obj,  function(r){
-        if(util.isError(r)){
-          next(r);
-        }else{
-          res.json(200, r);
-        }
-      });
+  app.del('/users/:userId/file/:fileId', function(req, res, next){
+    var obj = {
+      fileId: req.params.fileId,
+      userId: req.params.userId,
+      identifier: req.body.identifier
+    };
+    cabinet.deleteFileRecord(obj,  function(r){
+      if(util.isError(r)){
+        next(r);
+      }else{
+        res.json(200, r);
+      }
     });
+  });
 
-    app.del('/user/:userId/queue/:queueId', function(req, res, next){
-      var userId = req.params.userId;
-      var mediaNo = req.params.queueId;
-      cabinet.unQueue(mediaNo, userId, function(r){
-        if(util.isError(r)){
-          next(r);
-        }else{
-          res.json(200, r);
-        }            
-      });
+  //deletes a folder
+  app.del('/users/:userId/folder/:folderId', function(req, res, next){
+    var obj = {
+      folderId: req.params.folderId,
+      userId: req.params.userId
+    };
+    cabinet.deleteFolderRecord(obj,  function(r){
+      if(util.isError(r)){
+        next(r);
+      }else{
+        res.json(200, r);
+      }
     });
-  }
+  });
+
+  app.del('/users/:userId/queue/:queueId', function(req, res, next){
+    var userId = req.params.userId;
+    var mediaNo = req.params.queueId;
+    cabinet.unQueue(mediaNo, userId, function(r){
+      if(util.isError(r)){
+        next(r);
+      }else{
+        res.json(200, r);
+      }            
+    });
+  });
+};
