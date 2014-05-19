@@ -44,12 +44,12 @@ function afterResourceFilesLoad() {
     console.log('configuring application, please wait...');
 
 
-    console.log('Loading ' + 'passport'.inverse + ' config...');
-    try {
-      require('./lib/passport.js')(passport);
-    } catch(e) {
-      console.log(e);
-    }
+    // console.log('Loading ' + 'passport'.inverse + ' config...');
+    // try {
+    //   require('./lib/passport.js')(passport);
+    // } catch(e) {
+    //   console.log(e);
+    // }
     
     app.set('showStackError', true);
 
@@ -117,10 +117,10 @@ function afterResourceFilesLoad() {
     }));
 
     //Initialize Passport
-    app.use(passport.initialize());
+    // app.use(passport.initialize());
 
-    //enable passport sessions
-    app.use(passport.session());
+    // //enable passport sessions
+    // app.use(passport.session());
 
 
     // connect flash for flash messages - should be declared after sessions
@@ -190,7 +190,8 @@ function afterResourceFilesLoad() {
       //res.json(500, err.message);
       res.json('500', {
         url: req.originalUrl,
-        error: err.message
+        error: err.name,
+        code: err.code
       });
     });
 
