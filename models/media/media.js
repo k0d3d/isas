@@ -157,7 +157,33 @@ MediaSchema.plugin(mongoosastic, {
 	}
 });
 
+
+
 mongoose.model('Media', MediaSchema);
 mongoose.model('Folder', FolderSchema);
 module.exports.Media = mongoose.model('Media');
 module.exports.Folder = mongoose.model('Folder');
+/**
+ * Sync ES Indexes
+ */
+function syncIndex () {
+  var sync_es = mongoose.model('Media').synchronize(), count = 0;
+
+  sync_es.on('data', function(err){
+    if (err) {
+      console.log(err);
+    }
+    count++;
+  });
+  sync_es.on('close', function(){
+    console.log('indexed ' + count + ' documents!');
+  });
+  sync_es.on('error', function(err){
+    if (err) {
+      console.log(err);
+    }
+    console.log(err);
+  });	
+}
+
+module.exports.syncIndex = syncIndex;

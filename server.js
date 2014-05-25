@@ -28,7 +28,8 @@ var express = require('express'),
     uploader = require('./lib/uploader.js'),
     errors = require('./lib/errors'),  
     crashProtector = require('common-errors').middleware.crashProtector,      
-    helpers = require('view-helpers');
+    helpers = require('view-helpers'),
+    syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
 
@@ -144,6 +145,10 @@ function afterResourceFilesLoad() {
 
     // our router
     //app.use(app.router);
+    //
+    
+    //re-index es 
+    syncIndex();
 
 
     // test route - before anything else

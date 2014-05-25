@@ -16,23 +16,7 @@ Object Declaration
 */
 
 function CabinetObject(){
-  var sync_es = Media.synchronize(), count = 0;
 
-  sync_es.on('data', function(err){
-    if (err) {
-      console.log(err);
-    }
-    count++;
-  });
-  sync_es.on('close', function(){
-    console.log('indexed ' + count + ' documents!');
-  });
-  sync_es.on('error', function(err){
-    if (err) {
-      console.log(err);
-    }
-    console.log(err);
-  });
 }
 
 CabinetObject.prototype.constructor = CabinetObject;

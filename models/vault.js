@@ -6,6 +6,7 @@ var Utility = require('../lib/utility.js'),
     util = require('util'),
     // Stream = require('stream').Stream,
     Media = require('./media/media').Media,
+    syncIndex = require('./media/media').syncIndex,
     Cabinet = require('./media').cabinet,
     config = require('config'),
     mime = require('mime'),
@@ -19,7 +20,7 @@ function V4ult(){
   this.uuid = '';
   this.chunkList = [];
   this.vault_fileId = function () {
-    return [this._folder, this._owner, this._identifier].join('-');
+    return [this._folder, this._owner, this.chunkId].join('-');
   };
 
 }
@@ -81,7 +82,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   self._chunkNumber = fields.flowChunkNumber;
   self._chunkSize = fields.flowChunkSize;
   self._totalSize = fields.flowTotalSize;
-  self._identifier = utility.cleanIdentifier(fields.flowIdentifier);
+  self.chunkId = utility.cleanIdentifier(fields.flowIdentifier);
   self._filename = fields.flowFilename;
   // self._original_filename = fields.flowIdentifier;
   self._totalChunks = fields.flowTotalChunks;
@@ -130,11 +131,14 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     if(self._chunkNumber === self._totalChunks){
       //Create writeableStream. 
       //Happens ONCE. after ^
-      var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', self._identifier);
+      var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', self.vault_fileId());
       var stream = fs.createWriteStream(filepath);
 
       //Run the $.write method
-      fm.write(self._identifier, stream, function(){
+      fm.write(self.vault_fileId(), stream, function(){
+        //re-index es
+        syncIndex();
+        
         isDone(data);
       });
 
@@ -147,7 +151,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     //Runs after the last chunk has been piped
     //Deletes all temporary files    
     if(self._chunkNumber === self._totalChunks){
-      fm.deleteTemp(self._identifier, self._owner, function(f){
+      fm.deleteTemp(self.vault_fileId(), self._owner, function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
       });
       isDone(data);
@@ -158,10 +162,13 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   eventRegister.on('moveFile', function(data, isDone){
     // Save the chunk (TODO: OVERWRITE)
-    fs.rename(files[self.fileParameterName].path, self._chunkFilename, function(){
-      var tosaveObj = {
+    fs.rename(
+      files[self.fileParameterName].path, 
+      fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()), 
+      function(){
+        var tosaveObj = {
           progress: self._chunkNumber,
-          identifier: self._identifier,
+          identifier: self.vault_fileId(),
           filename: self._filename,
           size: self._totalSize,
           chunkCount: self._totalChunks,
@@ -181,11 +188,11 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     return;
   }
 
-  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self._identifier, files[self.fileParameterName].size);   
+  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), files[self.fileParameterName].size);   
 
   if(validation === 'valid') {
 
-    var chunkFilename = fm.getChunkFilename(self._chunkNumber, self._identifier);
+    var chunkFilename = fm.getChunkFilePath(self._chunkNumber, self.vault_fileId());
     
     eventRegister
     .queue('moveFile', 'checkFolder', 'write', 'saveFile', 'deleteTemp')
@@ -219,7 +226,7 @@ V4ult.prototype.getHandler = function  (param, cb){
   // var owner = param('throne', '');
 
   if(fm.validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilename(chunkNumber, identifier);
+    var chunkFilename = fm.getChunkFilePath(chunkNumber, identifier);
     fs.exists(chunkFilename, function(exists){
       if(exists){
         cb({'chunkFilename': chunkFilename, 'filename': filename, 'identifier': identifier});
