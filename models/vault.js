@@ -19,6 +19,22 @@ function V4ult(){
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
+  this.setFields =  function (fields) {
+    var self = this, u = new Utility();
+
+    self._chunkNumber = fields.flowChunkNumber;
+    self._chunkSize = fields.flowChunkSize;
+    self._totalSize = fields.flowTotalSize;
+    self.chunkId = u.cleanIdentifier(fields.flowIdentifier);
+    self._filename = fields.flowFilename;
+    // self._original_filename = fields.flowIdentifier;
+    self._totalChunks = fields.flowTotalChunks;
+    self._sum = fields.sum;
+    self._filetype = mime.lookup(fields.flowFilename);
+    self._owner = fields['x-Authr'];
+    self._folder = hashr.unhashOid(fields.folder);
+
+  };
   this.vault_fileId = function () {
     return [this._folder, this._owner, this.chunkId].join('-');
   };
@@ -79,17 +95,19 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   var self = this;
 
-  self._chunkNumber = fields.flowChunkNumber;
-  self._chunkSize = fields.flowChunkSize;
-  self._totalSize = fields.flowTotalSize;
-  self.chunkId = utility.cleanIdentifier(fields.flowIdentifier);
-  self._filename = fields.flowFilename;
-  // self._original_filename = fields.flowIdentifier;
-  self._totalChunks = fields.flowTotalChunks;
-  self._sum = fields.sum;
-  self._filetype = mime.lookup(fields.flowFilename);
-  self._owner = fields['x-Authr'];
-  self._folder = hashr.unhashOid(fields.folder);
+  self.setFields(fields);
+
+  // self._chunkNumber = fields.flowChunkNumber;
+  // self._chunkSize = fields.flowChunkSize;
+  // self._totalSize = fields.flowTotalSize;
+  // self.chunkId = utility.cleanIdentifier(fields.flowIdentifier);
+  // self._filename = fields.flowFilename;
+  // // self._original_filename = fields.flowIdentifier;
+  // self._totalChunks = fields.flowTotalChunks;
+  // self._sum = fields.sum;
+  // self._filetype = mime.lookup(fields.flowFilename);
+  // self._owner = fields['x-Authr'];
+  // self._folder = hashr.unhashOid(fields.folder);
 
   eventRegister.on('checkFolder', function(data, isDone){
     var cabinet = new Cabinet();
@@ -216,20 +234,22 @@ V4ult.prototype.postHandler = function (fields, files, callback){
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
-V4ult.prototype.getHandler = function  (param, cb){
-  var fm = new Fm();
-  var chunkNumber = param('flowChunkNumber', 0);
-  var chunkSize = param('flowChunkSize', 0);
-  var totalSize = param('flowTotalSize', 0);
-  var identifier = param('throne', '')+ '-' +param('flowIdentifier', '');
-  var filename = param('flowFilename', '');
+V4ult.prototype.getHandler = function  (params, cb){
+  var fm = new Fm(), self = this;
+  // var chunkNumber = param('flowChunkNumber', 0);
+  // var chunkSize = param('flowChunkSize', 0);
+  // var totalSize = param('flowTotalSize', 0);
+  // var identifier = param('throne', '')+ '-' +param('flowIdentifier', '');
+  // var filename = param('flowFilename', '');
+
+  self.setFields(params);
   // var owner = param('throne', '');
 
-  if(fm.validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilePath(chunkNumber, identifier);
+  if(fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), self._filename) === 'valid') {
+    var chunkFilename = fm.getChunkFilePath(self._chunkNumber, self.vault_fileId());
     fs.exists(chunkFilename, function(exists){
       if(exists){
-        cb({'chunkFilename': chunkFilename, 'filename': filename, 'identifier': identifier});
+        cb({'chunkFilename': chunkFilename, 'filename': self._filename, 'identifier': self.chunkId});
       } else {
         cb(errors.httpError(404));
       }

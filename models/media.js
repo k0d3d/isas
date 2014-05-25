@@ -260,7 +260,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
  * @return {[type]}              [description]
  */
  CabinetObject.prototype.unQueue = function(mediaNo, userId, callback){
-   var utility = new Utility();
+   var utility = new Utility(), fm = new Fm();
    var identifier;
 
    var options = {
@@ -280,7 +280,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
       callback(i);
     }else{
       identifier = i.identifier;
-      utility.clean(identifier,null, options);
+      fm.clean(identifier,null, options);
     }
   }); 
 };
