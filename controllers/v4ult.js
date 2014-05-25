@@ -1,4 +1,5 @@
 var V4ult = require('../models/vault.js'),
+    util = require('util'),
     cors = require('../lib/middlewares/cors');
 
 
