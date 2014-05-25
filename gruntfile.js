@@ -59,6 +59,9 @@ module.exports = function (grunt) {
       },
       lib_test : {
         src : ['api/**/*.js', 'models/**/*.js', 'lib/**/*.js', 'test/**/*.js', 'Gruntfile.js', 'bncauth.js']
+      },
+      app: {
+        src: ['models/**/*.js', 'controllers/**/*.js', 'lib/**/*.js']
       }
     },
     watch : {

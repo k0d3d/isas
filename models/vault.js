@@ -4,7 +4,7 @@ var Utility = require('../lib/utility.js'),
     fs = require('fs'),
     path = require('path'),
     util = require('util'),
-    Stream = require('stream').Stream,
+    // Stream = require('stream').Stream,
     Media = require('./media/media').Media,
     Cabinet = require('./media').cabinet,
     config = require('config'),
@@ -18,6 +18,9 @@ function V4ult(){
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
+  this.vault_fileId = function () {
+    return [this._folder, this._owner, this._identifier].join('-');
+  };
 
 }
 
@@ -33,9 +36,7 @@ V4ult.prototype.constructor = V4ult;
  */
 V4ult.prototype.save = function(prop, callback){
   var utility = new Utility();
-  var folder = function(){
 
-  };
   var q = Media.findOne({'owner': prop.owner, 'visible':1});
   q.where('identifier', prop.identifier);
   q.exec(function(err, i ){
@@ -77,17 +78,17 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   var self = this;
 
-  var chunkNumber = fields.flowChunkNumber;
-  var chunkSize = fields.flowChunkSize;
-  var totalSize = fields.flowTotalSize;
-  var identifier = utility.cleanIdentifier(fields['x-Authr']+ '-' +fields.flowIdentifier);
-  var filename = fields.flowFilename;
-  // var original_filename = fields.flowIdentifier;
-  var totalChunks = fields.flowTotalChunks;
-  var sum = fields.sum;
-  var filetype = mime.lookup(fields.flowFilename);
-  var owner = fields['x-Authr'];
-  var folder = hashr.unhashOid(fields.folder);
+  self._chunkNumber = fields.flowChunkNumber;
+  self._chunkSize = fields.flowChunkSize;
+  self._totalSize = fields.flowTotalSize;
+  self._identifier = utility.cleanIdentifier(fields.flowIdentifier);
+  self._filename = fields.flowFilename;
+  // self._original_filename = fields.flowIdentifier;
+  self._totalChunks = fields.flowTotalChunks;
+  self._sum = fields.sum;
+  self._filetype = mime.lookup(fields.flowFilename);
+  self._owner = fields['x-Authr'];
+  self._folder = hashr.unhashOid(fields.folder);
 
   eventRegister.on('checkFolder', function(data, isDone){
     var cabinet = new Cabinet();
@@ -126,14 +127,14 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   });
 
   eventRegister.on('write', function(data, isDone){
-    if(chunkNumber === totalChunks){
+    if(self._chunkNumber === self._totalChunks){
       //Create writeableStream. 
       //Happens ONCE. after ^
-      var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', identifier);
+      var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', self._identifier);
       var stream = fs.createWriteStream(filepath);
 
       //Run the $.write method
-      fm.write(identifier, stream, function(s){
+      fm.write(self._identifier, stream, function(){
         isDone(data);
       });
 
@@ -145,8 +146,8 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   eventRegister.on('deleteTemp', function(data, isDone){
     //Runs after the last chunk has been piped
     //Deletes all temporary files    
-    if(chunkNumber === totalChunks){
-      fm.deleteTemp(identifier, owner, function(f){
+    if(self._chunkNumber === self._totalChunks){
+      fm.deleteTemp(self._identifier, self._owner, function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
       });
       isDone(data);
@@ -157,18 +158,18 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   eventRegister.on('moveFile', function(data, isDone){
     // Save the chunk (TODO: OVERWRITE)
-    fs.rename(files[self.fileParameterName].path, chunkFilename, function(){
+    fs.rename(files[self.fileParameterName].path, self._chunkFilename, function(){
       var tosaveObj = {
-          progress: chunkNumber,
-          identifier: identifier,
-          filename: filename,
-          size: totalSize,
-          chunkCount: totalChunks,
-          sum : sum,
-          owner: owner,
-          type: filetype,
-          folder: folder,
-          completedDate: chunkNumber === totalChunks ? Date.now() : ''
+          progress: self._chunkNumber,
+          identifier: self._identifier,
+          filename: self._filename,
+          size: self._totalSize,
+          chunkCount: self._totalChunks,
+          sum : self._sum,
+          owner: self._owner,
+          type: self._filetype,
+          folder: self._folder,
+          completedDate: self._chunkNumber === self._totalChunks ? Date.now() : ''
         };
         isDone(tosaveObj);
     });
@@ -180,15 +181,15 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     return;
   }
 
-  var validation = fm.validateRequest(chunkNumber, chunkSize, totalSize, identifier, files[self.fileParameterName].size);   
+  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self._identifier, files[self.fileParameterName].size);   
 
-  if(validation =='valid') {
+  if(validation === 'valid') {
 
-    var chunkFilename = fm.getChunkFilename(chunkNumber, identifier);
+    var chunkFilename = fm.getChunkFilename(self._chunkNumber, self._identifier);
     
     eventRegister
     .queue('moveFile', 'checkFolder', 'write', 'saveFile', 'deleteTemp')
-    .onEnd(function(data){
+    .onEnd(function(){
       callback(1);
     })
     .onError(function(err){
@@ -215,9 +216,9 @@ V4ult.prototype.getHandler = function  (param, cb){
   var totalSize = param('flowTotalSize', 0);
   var identifier = param('throne', '')+ '-' +param('flowIdentifier', '');
   var filename = param('flowFilename', '');
-  var owner = param('throne', '');
+  // var owner = param('throne', '');
 
-  if(fm.validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename)=='valid') {
+  if(fm.validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename) === 'valid') {
     var chunkFilename = fm.getChunkFilename(chunkNumber, identifier);
     fs.exists(chunkFilename, function(exists){
       if(exists){

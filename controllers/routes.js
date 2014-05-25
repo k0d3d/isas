@@ -7,7 +7,7 @@
  * Expose routes
  */
 
-module.exports = function (app, passport, auth) {
+module.exports = function (app) {
 
   var vault = require("./v4ult");
   vault.routes(app);

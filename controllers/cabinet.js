@@ -1,5 +1,6 @@
 var CabinetObject = require('../models/media.js').cabinet,
     util = require('util'),
+    _ = require('lodash'),
     hashr = require('../lib/hash.js');
 
 module.exports.routes = function(app){
@@ -46,7 +47,7 @@ module.exports.routes = function(app){
   });
 
   //Request for a file to be served / downloaded
-  app.get('/users/media/:mediaId', function(req, res, next){
+  app.get('/users/media/:mediaId', function(req, res){
     var mediaId = req.params.mediaId;
     cabinet.getFile(mediaId, function(r){
       if(util.isError(r) || _.isEmpty(r)){

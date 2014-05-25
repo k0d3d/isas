@@ -137,10 +137,8 @@ CabinetObject.prototype.openUserFolder = function openUserFolder (userId, option
   .onError(function(err){
     cb(err);
   })
-  .onEnd(function(r){
-    console.log('opening folder');
-    console.log(r);
-    cb(r);
+  .onEnd(function(){
+    cb(folder);
   })
   .start(options);
 };

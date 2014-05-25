@@ -11,7 +11,7 @@ var express = require('express'),
     router = express.Router(),
     config = require('config'),
     app = express(),
-    passport = require('passport'),
+    // passport = require('passport'),
     routes = require('./controllers/routes'),
     logger = require('morgan'),
     cookieParser = require('cookie-parser'),
@@ -165,7 +165,7 @@ function afterResourceFilesLoad() {
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, passport);
+    routes(app);
 
 
     // assume "not found" in the error msgs

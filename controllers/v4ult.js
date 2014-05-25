@@ -37,7 +37,7 @@ module.exports.routes = function(app){
 
 
   // Handle status checks on chunks through flow.js
-  app.get('/upload',cors, function(req, res, next){
+  app.get('/upload',cors, function(req, res){
 
     v4ult.getHandler(req.param, function(r){
       if(util.isError(r)){
