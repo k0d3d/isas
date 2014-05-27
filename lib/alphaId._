@@ -31,10 +31,10 @@ var AlphabeticID = {
    *  [@return](http://twitter.com/return) string
    **/
   encode:function(_number){
-    if('undefined' == typeof _number){
+    if('undefined' === typeof _number){
       return null;
     }
-    else if('number' != typeof(_number)){
+    else if('number' !== typeof(_number)){
       throw new Error('Wrong parameter type');
     }
 

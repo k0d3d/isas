@@ -62,7 +62,10 @@
     "morgan": "~1.0.0",
     "errors": "~0.1.0",
     "q": "~1.0.1",
-    "colors": "~0.6.2"
+    "colors": "~0.6.2",
+    "lodash": "~2.4.1",
+    "formidable": "latest",
+    "common-errors": "~0.4.6"
   },
   "devDependencies": {
     "grunt": "~0.4.2",

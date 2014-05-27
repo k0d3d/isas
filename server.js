@@ -11,7 +11,7 @@ var express = require('express'),
     router = express.Router(),
     config = require('config'),
     app = express(),
-    passport = require('passport'),
+    // passport = require('passport'),
     routes = require('./controllers/routes'),
     logger = require('morgan'),
     cookieParser = require('cookie-parser'),
@@ -24,7 +24,12 @@ var express = require('express'),
     mongoosastic = require('mongoosastic'),
     restler = require('restler'),
     color = require('colors'),
-    helpers = require('view-helpers');
+    downloader = require('./lib/downloader.js'),
+    uploader = require('./lib/uploader.js'),
+    errors = require('./lib/errors'),  
+    crashProtector = require('common-errors').middleware.crashProtector,      
+    helpers = require('view-helpers'),
+    syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
 
@@ -40,16 +45,20 @@ function afterResourceFilesLoad() {
     console.log('configuring application, please wait...');
 
 
-    console.log('Loading ' + 'passport'.inverse + ' config...');
-    try {
-      require('./lib/passport.js')(passport);
-    } catch(e) {
-      console.log(e);
-    }
+    // console.log('Loading ' + 'passport'.inverse + ' config...');
+    // try {
+    //   require('./lib/passport.js')(passport);
+    // } catch(e) {
+    //   console.log(e);
+    // }
     
-
     app.set('showStackError', true);
 
+    console.log('Enabling crash protector...');
+    app.use(crashProtector());
+
+    console.log('Enabling error handling...');
+    app.use(errors.init());
 
     // make everything in the public folder publicly accessible - do this high up as possible
     app.use(express.static(__dirname + '/public'));
@@ -87,6 +96,12 @@ function afterResourceFilesLoad() {
     app.use(bodyParser());
     app.use(methodOverride());
 
+    //load download middleware
+    app.use(downloader());
+
+    // load uploader middleware
+    app.use(uploader());
+
     // setup session management
     console.log('setting up session management, please wait...');
     app.use(session({
@@ -103,10 +118,10 @@ function afterResourceFilesLoad() {
     }));
 
     //Initialize Passport
-    app.use(passport.initialize());
+    // app.use(passport.initialize());
 
-    //enable passport sessions
-    app.use(passport.session());
+    // //enable passport sessions
+    // app.use(passport.session());
 
 
     // connect flash for flash messages - should be declared after sessions
@@ -130,6 +145,10 @@ function afterResourceFilesLoad() {
 
     // our router
     //app.use(app.router);
+    //
+    
+    //re-index es 
+    syncIndex();
 
 
     // test route - before anything else
@@ -140,10 +159,18 @@ function afterResourceFilesLoad() {
         res.send('IXIT Document Server is running');
     });
 
+    // test route - before anything else
+    console.log('setting up ping route /ping');
+
+    app.route('/ping')
+    .get(function(req, res) {
+        res.send('ready');
+    });
+
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, passport);
+    routes(app);
 
 
     // assume "not found" in the error msgs
@@ -166,9 +193,10 @@ function afterResourceFilesLoad() {
       // error page
       //res.status(500).json({ error: err.stack });
       //res.json(500, err.message);
-      res.status(500).render('500', {
+      res.json('500', {
         url: req.originalUrl,
-        error: err.message
+        error: err.name,
+        code: err.code
       });
     });
 
@@ -177,7 +205,7 @@ function afterResourceFilesLoad() {
       if (req.xhr) {
         res.json(404, {message: 'resource not found'});
       } else {
-        res.status(404).render('404', {
+        res.json('404', {
           url: req.originalUrl,
           error: 'Not found'
         });        
@@ -211,29 +239,30 @@ console.log("Setting up database communication...");
 // setup database connection
 require('./lib/db').open()
 .then(function () {
-  console.log('Connection open...');
-  afterResourceFilesLoad();
-
-  // actual application start
-  app.listen(port);
-  console.log('IXIT Document Service started on port '+port);
-
-  // expose app
-  exports = module.exports = app;
-  // CATASTROPHIC ERROR
-  app.use(function(err, req, res){
-    
-    console.error(err.stack);
-    
-    // make this a nicer error later
-    res.send(500, 'Ewww! Something got broken on IXIT. Getting some tape and glue');
-    
-  });
+  console.log('Database Connection open...');
 
 })
 .catch(function (e) {
   console.log(e);
 });
 
+//load resource
+afterResourceFilesLoad();
+
+// actual application start
+app.listen(port);
+console.log('IXIT Document Service started on port '+port);
+
+// expose app
+exports = module.exports = app;
+// CATASTROPHIC ERROR
+app.use(function(err, req, res){
+  
+  console.error(err.stack);
+  
+  // make this a nicer error later
+  res.send(500, 'Ewww! Something got broken on IXIT. Getting some tape and glue');
+  
+});
 
 
