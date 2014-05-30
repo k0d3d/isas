@@ -193,11 +193,19 @@ function afterResourceFilesLoad() {
       // error page
       //res.status(500).json({ error: err.stack });
       //res.json(500, err.message);
-      res.json('500', {
-        url: req.originalUrl,
-        error: err.name,
-        code: err.code
-      });
+      if (err.code) {       
+        res.json('400', {
+          url: req.originalUrl,
+          error: err.name,
+          code: err.code
+        });
+      } else {
+        res.json('500', {
+          url: req.originalUrl,
+          error: err.message,
+          stack: err.stack
+        });        
+      }
     });
 
     // assume 404 since no middleware responded
