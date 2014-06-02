@@ -12,10 +12,9 @@ module.exports.routes = function(app){
     var files = req.files;   
     //CORS Headers
     v4ult.postHandler(fields, files, function(status){
-      console.log(status);
       //Send appoproiate response
-      if(status === 1){
-        res.json(200, {status: 'done'});
+      if(typeof status === 'object'){
+        res.json(200, status);
       }else if(status === 2){
         res.send(200, {status: 'inprogress'});
       }else{

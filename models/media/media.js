@@ -21,6 +21,7 @@ var MediaSchema = new Schema({
 	completedDate: {type: Date, es_type:'date'},
 	mediaNumber: {type: Number},
 	tags:{type: String, index: true, es_indexed:true},
+  chunkId: {type: String},
 	folder: {type: Schema.ObjectId, ref: 'Folder'}
 }, {
     toObject: { virtuals: true },

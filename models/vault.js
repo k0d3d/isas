@@ -56,25 +56,25 @@ V4ult.prototype.save = function(prop, callback){
 
   var q = Media.findOne({'owner': prop.owner, 'visible':1});
   q.where('identifier', prop.identifier);
-  q.exec(function(err, i ){
-    if(_.isNull(i)){
+  q.exec(function(err, foundDoc ){
+    if(_.isNull(foundDoc)){
       var media = new Media(prop);
       media.mediaNumber = utility.mediaNumber();
-      media.save(function(err, i){
+      media.save(function(err, foundDoc){
         if(err){
           callback(err);
         }else{
-          i.index(function(err){
-            if(!err){callback(i);}
+          foundDoc.index(function(err){
+            if(!err){callback(foundDoc);}
           });
         }
       });      
     }else{
-      Media.update({_id: i._id}, prop, function(err, i){
+      Media.update({_id: foundDoc._id}, prop, function(err){
         if(err){
           callback(err);
         }else{
-          callback(i);
+          callback(foundDoc);
         }
       });
     }
@@ -132,17 +132,29 @@ V4ult.prototype.postHandler = function (fields, files, callback){
       //This saves the file record and just outputs the saved object
       //isDone is called so the upload can process without 
       //waiting for the save method to complete.
-      process.nextTick(function() {
-        self.save(data, function(i){
-          util.puts(i);
-        });
-      });
-      //Continue the upload process
-      isDone(data);
-    // }else{
-    //   //Continue uploading chunkks
-    //   isDone(data);
-    // }
+      //
+      //if the upload is complete..return the saved 
+      //upload document.
+      if (self._chunkNumber === self._totalChunks) {
+        console.log('Download finished...'.green);        
+        // process.nextTick(function() {
+          self.save(data, function(i){
+            // util.puts(i);
+            isDone(i);
+          });
+        // });
+      } else {
+        //call save method   
+        process.nextTick(function() {
+          self.save(data, function(i){
+            // util.puts(i);
+          });
+        });          
+        //Continue the upload process
+        //without blocking the save.
+        isDone(data);
+      }
+
   });
 
   eventRegister.on('write', function(data, isDone){
@@ -194,6 +206,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
           owner: self._owner,
           type: self._filetype,
           folder: self._folder,
+          chunkId: self.chunkId,
           completedDate: self._chunkNumber === self._totalChunks ? Date.now() : ''
         };
         isDone(tosaveObj);
@@ -214,8 +227,8 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     
     eventRegister
     .queue('moveFile', 'checkFolder', 'write', 'saveFile', 'deleteTemp')
-    .onEnd(function(){
-      callback(1);
+    .onEnd(function(r){
+      callback(r);
     })
     .onError(function(err){
       callback(err);
