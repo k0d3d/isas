@@ -65,7 +65,8 @@
     "colors": "~0.6.2",
     "lodash": "~2.4.1",
     "formidable": "latest",
-    "common-errors": "~0.4.6"
+    "common-errors": "~0.4.6",
+    "aws-sdk": "~2.0.0-rc.19"
   },
   "devDependencies": {
     "grunt": "~0.4.2",
