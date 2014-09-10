@@ -2,7 +2,7 @@
   "name": "IXIT-Media-Server",
   "version": "0.1.0",
   "description": "Handles file uploads and manages media ",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

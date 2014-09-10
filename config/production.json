@@ -1,9 +1,9 @@
 {
     "db": {
         "url": "mongodb://dk33p_user:VkLNst@6@ds063929.mongolab.com:63929/heroku_app29361254",
-        "user": "heroku_app29361254",
+        "user": "dk33p_user",
         "password": "VkLNst@6",
-        "database": "dk33p_user",
+        "database": "heroku_app29361254",
         "port": 63929,
         "server": "ds063929.mongolab.com"
         },
