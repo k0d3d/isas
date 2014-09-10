@@ -8,6 +8,7 @@ module.exports.routes = function(app){
 
   // Handle uploads through flow.js
   app.post('/upload', cors, function(req, res){
+    return res.json(400, false)
     var fields = req.body;
     var files = req.files;   
     //CORS Headers
