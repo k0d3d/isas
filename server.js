@@ -19,15 +19,15 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     flash = require('connect-flash'),
     session = require('express-session'),
-    favicon = require('static-favicon'),
+    // favicon = require('serve-favicon'),
     compress = require('compression'),
     mongoosastic = require('mongoosastic'),
     restler = require('restler'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
     uploader = require('./lib/uploader.js'),
-    errors = require('./lib/errors'),  
-    crashProtector = require('common-errors').middleware.crashProtector,      
+    errors = require('./lib/errors'),
+    crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
@@ -51,7 +51,7 @@ function afterResourceFilesLoad() {
     // } catch(e) {
     //   console.log(e);
     // }
-    
+
     app.set('showStackError', true);
 
     console.log('Enabling crash protector...');
@@ -72,7 +72,7 @@ function afterResourceFilesLoad() {
     }));
 
     // efficient favicon return - will enable when we have a favicon
-    app.use(favicon('public/images/favicon.ico'));
+    // app.use(favicon('public/images/favicon.ico'));
 
 
     app.locals.layout = false;
@@ -88,12 +88,16 @@ function afterResourceFilesLoad() {
     app.use(function (req, res, next) {
       res.locals.pkg = pjson;
       next();
-    });      
+    });
 
     // signed cookies
     app.use(cookieParser(config.express.secret));
 
-    app.use(bodyParser());
+    app.use(bodyParser.urlencoded({
+      extended: true
+    }));
+    app.use(bodyParser.json());
+
     app.use(methodOverride());
 
     //load download middleware
@@ -105,6 +109,8 @@ function afterResourceFilesLoad() {
     // setup session management
     console.log('setting up session management, please wait...');
     app.use(session({
+        resave: true,
+        saveUninitialized: true,
         secret: config.express.secret,
         store: new MongoStore({
             db: config.db.database,
@@ -146,8 +152,8 @@ function afterResourceFilesLoad() {
     // our router
     //app.use(app.router);
     //
-    
-    //re-index es 
+
+    //re-index es
     syncIndex();
 
 
@@ -193,7 +199,7 @@ function afterResourceFilesLoad() {
       // error page
       //res.status(500).json({ error: err.stack });
       //res.json(500, err.message);
-      if (err.code) {       
+      if (err.code) {
         res.json('400', {
           url: req.originalUrl,
           error: err.name,
@@ -204,7 +210,7 @@ function afterResourceFilesLoad() {
           url: req.originalUrl,
           error: err.message,
           stack: err.stack
-        });        
+        });
       }
     });
 
@@ -216,10 +222,10 @@ function afterResourceFilesLoad() {
         res.json('404', {
           url: req.originalUrl,
           error: 'Not found'
-        });        
+        });
       }
 
-    });      
+    });
 
 
     // development env config
@@ -265,12 +271,12 @@ console.log('IXIT Document Service started on port '+port);
 exports = module.exports = app;
 // CATASTROPHIC ERROR
 app.use(function(err, req, res){
-  
+
   console.error(err.stack);
-  
+
   // make this a nicer error later
   res.send(500, 'Ewww! Something got broken on IXIT. Getting some tape and glue');
-  
+
 });
 
 

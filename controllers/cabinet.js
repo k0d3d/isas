@@ -6,11 +6,11 @@ var CabinetObject = require('../models/media.js').cabinet,
 module.exports.routes = function(app){
   var cabinet = new CabinetObject();
 
-  //Request the home folderId 
+  //Request the home folderId
   app.get('/users/:userId/home', function(req,res, next){
     cabinet.findUserHome(req.param('userId'),
       function(r){
-        if(util.isError(r)){ 
+        if(util.isError(r)){
           next(r);
         }else{
           res.json(200, r);
@@ -24,7 +24,7 @@ module.exports.routes = function(app){
     var limit = req.body.limit || 10;
     cabinet.findUserFiles(req.param('userId'), {page: page, limit: limit},
       function(r){
-        if(util.isError(r)){ 
+        if(util.isError(r)){
           next(r);
         }else{
           res.json(200, r);
@@ -38,7 +38,7 @@ module.exports.routes = function(app){
     var limit = req.body.limit || 10;
     cabinet.findUserQueue(req.param('userId'), {page: page, limit: limit},
       function(r){
-        if(util.isError(r)){ 
+        if(util.isError(r)){
           next(r);
         }else{
           res.json(200, r);
@@ -54,7 +54,7 @@ module.exports.routes = function(app){
         res.json(404, r);
       }else{
         res.json(200, r);
-      }            
+      }
     });
   });
 
@@ -67,7 +67,7 @@ module.exports.routes = function(app){
         res.json(200, r);
       }
     });
-  });    
+  });
 
   //Send the file to the browser to be downloaded
   app.get('/download/:mediaId', function(req, res, next){
@@ -76,7 +76,7 @@ module.exports.routes = function(app){
         next(r);
       }else{
         res.issueDownload(r, filename);
-      }            
+      }
     });
   });
 
@@ -87,7 +87,7 @@ module.exports.routes = function(app){
         next(r);
       }else{
         res.json(200, r);
-      }            
+      }
     });
   });
 
@@ -132,13 +132,13 @@ module.exports.routes = function(app){
     });
   });
 
-  app.del('/users/:userId/file/:fileId', function(req, res, next){
+  app.delete('/users/:userId/file/:fileId', function(req, res, next){
     var obj = {
       fileId: req.params.fileId,
       userId: req.params.userId,
       identifier: req.body.identifier
     };
-    cabinet.deleteFileRecord(obj,  function(r){
+    cabinet.deleteeteFileRecord(obj,  function(r){
       if(util.isError(r)){
         next(r);
       }else{
@@ -148,12 +148,12 @@ module.exports.routes = function(app){
   });
 
   //deletes a folder
-  app.del('/users/:userId/folder/:folderId', function(req, res, next){
+  app.delete('/users/:userId/folder/:folderId', function(req, res, next){
     var obj = {
       folder_id: hashr.unhashOid(req.params.folderId),
       owner: req.params.userId
     };
-    cabinet.deleteFolderRecord(obj,  function(r){
+    cabinet.deleteeteFolderRecord(obj,  function(r){
       if(util.isError(r)){
         next(r);
       }else{
@@ -162,7 +162,7 @@ module.exports.routes = function(app){
     });
   });
 
-  app.del('/users/:userId/queue/:queueId', function(req, res, next){
+  app.delete('/users/:userId/queue/:queueId', function(req, res, next){
     var userId = req.params.userId;
     var mediaNo = req.params.queueId;
     cabinet.unQueue(mediaNo, userId, function(r){
@@ -170,7 +170,7 @@ module.exports.routes = function(app){
         next(r);
       }else{
         res.json(200, r);
-      }            
+      }
     });
   });
 };
