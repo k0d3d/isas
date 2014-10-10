@@ -58,37 +58,98 @@ module.exports = function (grunt) {
         src : 'gruntfile.js'
       },
       lib_test : {
-        src : ['api/**/*.js', 'models/**/*.js', 'lib/**/*.js', 'test/**/*.js', 'Gruntfile.js', 'bncauth.js']
-      },
-      app: {
-        src: ['models/**/*.js', 'controllers/**/*.js', 'lib/**/*.js']
+        src : ['models/**/*.js', 'lib/**/*.js', 'controllers/**/*.js', 'test/**/*.js']
       }
     },
     watch : {
+      lib_test : {
+        files : '<%= jshint.lib_test.src %>',
+        tasks : ['jshint:lib_test']
+      },
       gruntfile : {
         files : '<%= jshint.gruntfile.src %>',
         tasks : ['jshint:gruntfile']
-      },
-      lib_test : {
-        files : '<%= jshint.lib_test.src %>',
-        tasks : ['jshint:lib_test', 'nodeunit']
+      }
+    },
+    'node-inspector': {
+      dev: {
+        options: {
+          'web-port': 5888,
+          'web-host': 'localhost',
+          'debug-port': 5899,
+          'stack-trace-limit': 4,
+          'hidden': ['node_modules']
+        }
+      }
+    },
+
+    concurrent: {
+      dev: {
+        tasks: ['nodemon', 'node-inspector', 'watch:lib_test'],
+        options: {
+          logConcurrentOutput: true
+        }
+      }
+    },
+    nodemon: {
+      dev: {
+        script: 'server.js',
+        options: {
+          // nodeArgs: ['--debug'],
+          env: {
+            PORT: '3001'
+          },
+          ignore: ['node_modules/**'],
+          ext: 'js,coffee',
+          // omit this property if you aren't serving HTML files and
+          // don't want to open a browser tab on start
+          callback: function (nodemon) {
+            nodemon.on('log', function (event) {
+              console.log(event.colour);
+            });
+          }
+        }
       }
     }
   });
 
   // These plugins provide necessary tasks
   grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-docco');
   grunt.loadNpmTasks('grunt-bump');
+  grunt.loadNpmTasks('grunt-nodemon');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-node-inspector');
+  grunt.loadNpmTasks('grunt-concurrent');
 
   // Default task
-  grunt.registerTask('default', ['jshint']);
+  grunt.registerTask('default', ['jshint', 'build']);
+  grunt.registerTask('rundkeep', ['concurrent:dev', 'build']);
 
   // Nightly Build - we will be elaborating on this task
-  grunt.registerTask('nightly-build', ['jshint', 'docco']); 
+  grunt.registerTask('nightly-build', ['jshint', 'docco']);
+  grunt.registerTask(
+    'build',
+    'Compiles all of the assets and copies the files to the build directory.',
+    [ 'clean:build', 'copy', 'stylesheets', 'scripts', 'clean:components', 'clean:stylesheets', 'clean:scripts']
+  );
+  grunt.registerTask(
+    'stylesheets',
+    'Compiles the stylesheets.',
+    [ 'less', 'autoprefixer', 'cssmin']
+  );
+  grunt.registerTask(
+    'scripts',
+    'Compiles the JavaScript files.',
+    [ 'uglify']
+  );
+  grunt.registerTask(
+    'copynclean',
+    'Copies files needed for app',
+    ['clean:build', 'copy']
+  );
 
 
 };

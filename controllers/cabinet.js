@@ -13,7 +13,7 @@ module.exports.routes = function(app){
         if(util.isError(r)){
           next(r);
         }else{
-          res.json(200, r);
+          res.status(200).json(r);
         }
       });
   });
@@ -27,7 +27,7 @@ module.exports.routes = function(app){
         if(util.isError(r)){
           next(r);
         }else{
-          res.json(200, r);
+          res.status(200).json(r);
         }
       });
   });
@@ -41,7 +41,7 @@ module.exports.routes = function(app){
         if(util.isError(r)){
           next(r);
         }else{
-          res.json(200, r);
+          res.status(200).json(r);
         }
       });
   });
@@ -51,9 +51,9 @@ module.exports.routes = function(app){
     var mediaId = req.params.mediaId;
     cabinet.getFile(mediaId, function(r){
       if(util.isError(r) || _.isEmpty(r)){
-        res.json(404, r);
+        res.status(404).json(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -64,7 +64,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -86,7 +86,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -97,7 +97,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -113,7 +113,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -127,7 +127,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, true);
+        res.status(200).json(true);
       }
     });
   });
@@ -142,7 +142,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -157,7 +157,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
@@ -169,7 +169,7 @@ module.exports.routes = function(app){
       if(util.isError(r)){
         next(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });

@@ -31,8 +31,8 @@ function V4ult(){
     self._totalChunks = fields.flowTotalChunks;
     self._sum = fields.sum;
     self._filetype = mime.lookup(fields.flowFilename);
-    self._owner = fields['x-Authr'];
-    self._folder = hashr.unhashOid(fields.folder);
+    self._owner = fields['x-Authr'] || 'anonymous';
+    self._folder = fields.folder ? hashr.unhashOid(fields.folder) : null;
 
   };
   this.vault_fileId = function () {
@@ -68,7 +68,7 @@ V4ult.prototype.save = function(prop, callback){
             if(!err){callback(foundDoc);}
           });
         }
-      });      
+      });
     }else{
       Media.update({_id: foundDoc._id}, prop, function(err){
         if(err){
@@ -97,21 +97,9 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   self.setFields(fields);
 
-  // self._chunkNumber = fields.flowChunkNumber;
-  // self._chunkSize = fields.flowChunkSize;
-  // self._totalSize = fields.flowTotalSize;
-  // self.chunkId = utility.cleanIdentifier(fields.flowIdentifier);
-  // self._filename = fields.flowFilename;
-  // // self._original_filename = fields.flowIdentifier;
-  // self._totalChunks = fields.flowTotalChunks;
-  // self._sum = fields.sum;
-  // self._filetype = mime.lookup(fields.flowFilename);
-  // self._owner = fields['x-Authr'];
-  // self._folder = hashr.unhashOid(fields.folder);
-
   eventRegister.on('checkFolder', function(data, isDone){
     var cabinet = new Cabinet();
-    if (!data.folder) {    
+    if (!data.folder) {
       cabinet.createFolder({
         name: data.name || 'Home',
         owner: data.owner,
@@ -130,26 +118,26 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     // if(parseInt(data.chunkNumber) === 1 || chunkNumber === totalChunks){
       //TODO:: log file save / upload completed
       //This saves the file record and just outputs the saved object
-      //isDone is called so the upload can process without 
+      //isDone is called so the upload can process without
       //waiting for the save method to complete.
       //
-      //if the upload is complete..return the saved 
+      //if the upload is complete..return the saved
       //upload document.
       if (self._chunkNumber === self._totalChunks) {
-        console.log('Download finished...'.green);        
+        console.log('Download finished...'.green);
         // process.nextTick(function() {
           self.save(data, function(i){
-            // util.puts(i);
-            isDone(i);
+
+              isDone(i);
           });
         // });
       } else {
-        //call save method   
+        //call save method
         process.nextTick(function() {
           self.save(data, function(i){
             // util.puts(i);
           });
-        });          
+        });
         //Continue the upload process
         //without blocking the save.
         isDone(data);
@@ -157,9 +145,12 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   });
 
+  //joins the chunks of file uploaded into
+  //one file after all chunks have been
+  //uploaded.
   eventRegister.on('write', function(data, isDone){
     if(self._chunkNumber === self._totalChunks){
-      //Create writeableStream. 
+      //Create writeableStream.
       //Happens ONCE. after ^
       var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', self.vault_fileId());
       var stream = fs.createWriteStream(filepath);
@@ -168,7 +159,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
       fm.write(self.vault_fileId(), stream, function(){
         //re-index es
         syncIndex();
-        
+
         isDone(data);
       });
 
@@ -179,7 +170,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
 
   eventRegister.on('deleteTemp', function(data, isDone){
     //Runs after the last chunk has been piped
-    //Deletes all temporary files    
+    //Deletes all temporary files
     if(self._chunkNumber === self._totalChunks){
       fm.deleteTemp(self.vault_fileId(), self._owner, function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
@@ -193,8 +184,8 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   eventRegister.on('moveFile', function(data, isDone){
     // Save the chunk (TODO: OVERWRITE)
     fs.rename(
-      files[self.fileParameterName].path, 
-      fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()), 
+      files[self.fileParameterName].path,
+      fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
       function(){
         var tosaveObj = {
           progress: self._chunkNumber,
@@ -211,7 +202,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
         };
         isDone(tosaveObj);
     });
-  }); 
+  });
 
   if(!files[self.fileParameterName] || !files[self.fileParameterName].size) {
     callback(3);
@@ -219,19 +210,20 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     return;
   }
 
-  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), files[self.fileParameterName].size);   
+  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), files[self.fileParameterName].size);
 
   if(validation === 'valid') {
 
     var chunkFilename = fm.getChunkFilePath(self._chunkNumber, self.vault_fileId());
-    
+
     eventRegister
     .queue('moveFile', 'checkFolder', 'write', 'saveFile', 'deleteTemp')
     .onEnd(function(r){
       callback(r);
     })
     .onError(function(err){
-      callback(err);
+      console.log(err);
+      callback(errors.nounce('UploadHasError'));
     })
     .start(chunkFilename);
 

@@ -25,7 +25,7 @@ var MediaSchema = new Schema({
 	folder: {type: Schema.ObjectId, ref: 'Folder'}
 }, {
     toObject: { virtuals: true },
-    toJSON: { virtuals: true }	
+    toJSON: { virtuals: true }
 });
 
 /**
@@ -47,7 +47,7 @@ var FolderSchema = new Schema({
 	created: {type: Date, default: Date.now}
 }, {
   toObject: { virtuals: true, getters: true },
-  toJSON: { virtuals: true, getters: true }	
+  toJSON: { virtuals: true, getters: true }
 });
 
 /**
@@ -86,12 +86,12 @@ MediaSchema.statics = {
 	userFiles : function(userId, options, callback){
 
 		this.find({
-			'owner': userId, 
+			'owner': userId,
 			$where: function(){
 				return (this.progress === this.chunkCount) && this.visible === 1;
 			},
 			folder: options.folder
-		}, 
+		},
 		function(err, i){
 			if(err){
 				callback(err);
@@ -113,7 +113,7 @@ MediaSchema.statics = {
 
 		this.find({"owner": userId, $where: function(){
 			return this.progress < this.chunkCount;
-			} 
+			}
 		}, function(err, i){
 			if(err){
 				callback(err);
@@ -131,7 +131,7 @@ MediaSchema.statics = {
 	one : function(media_id, callback){
 		var q;
 		if(/^[0-9a-fA-F]{24}$/.test(media_id)){
-			q = {"_id": media_id}; 
+			q = {"_id": media_id};
 		}else{
 			q = {"mediaNumber": media_id};
 		}
@@ -152,7 +152,10 @@ MediaSchema.statics = {
 MediaSchema.plugin(mongoosastic, {
 	host: config.es.url,
 	port: config.es.port,
-	hydrate: true, 
+  // protocol: 'https',
+  // auth: config.es.auth,
+  index: 'medias',
+	hydrate: true,
 	hydrateOptions:{
 		select: 'mediaNumber size filename completedDate'
 	}
@@ -184,7 +187,7 @@ function syncIndex () {
       console.log(err);
     }
     console.log(err);
-  });	
+  });
 }
 
 module.exports.syncIndex = syncIndex;

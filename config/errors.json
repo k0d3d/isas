@@ -5,7 +5,7 @@
     "defaultMessage": "The requested file could not be found",
     "defaultExplanation": "The file could not be found",
     "defaultResponse": "Verify the file exists and retry the operation",
-    "code": 601 
+    "code": 601
   },
   {
     "name": "FolderNotFoundError",
@@ -27,6 +27,13 @@
     "defaultExplanation": "The folder contains files or folders",
     "defaultResponse": "Please delete all files or folders within",
     "code": 604
+  },
+  {
+    "name": "UploadHasError",
+    "defaultMessage": "The upload operation failed with errors.",
+    "defaultExplanation": "An error occured during the file upload.",
+    "defaultResponse": "Error has been logged and Admin notified",
+    "code": 605
   }
 
 ]

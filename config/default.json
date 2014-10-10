@@ -1,0 +1,11 @@
+{
+    "app": {
+        "name": "IXIT - File Sharing and Hosting",
+        "home": "dk33p"
+    },
+    "es" : {
+        "url": "paas:333e1f4aea269a14360e1396d3bde7f2@balin-eu-west-1.searchly.com",
+        "port": 80,
+        "auth": "paas:333e1f4aea269a14360e1396d3bde7f2"
+    }
+}

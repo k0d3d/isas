@@ -200,13 +200,13 @@ function afterResourceFilesLoad() {
       //res.status(500).json({ error: err.stack });
       //res.json(500, err.message);
       if (err.code) {
-        res.json('400', {
+        res.status(400).json({
           url: req.originalUrl,
           error: err.name,
           code: err.code
         });
       } else {
-        res.json('500', {
+        res.status(500).json({
           url: req.originalUrl,
           error: err.message,
           stack: err.stack
@@ -217,9 +217,9 @@ function afterResourceFilesLoad() {
     // assume 404 since no middleware responded
     app.use(function(req, res){
       if (req.xhr) {
-        res.json(404, {message: 'resource not found'});
+        res.status(404).json({message: 'resource not found'});
       } else {
-        res.json('404', {
+        res.status(404).json( {
           url: req.originalUrl,
           error: 'Not found'
         });
@@ -242,11 +242,17 @@ console.log("Checking connection to ElasticSearch Server...");
 restler.get('http://' + config.es.url + ':' + config.es.port)
 .on('success', function (data) {
   if (data.status === 200) {
-    console.log('ES running on ' + config.es.url + ':' + config.es.port);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('ES running on ' + config.es.url + ':' + config.es.port);
+    }
   }
 })
 .on('error', function (data) {
-  console.log('Error Connecting to ES on ' + config.es.url + ':' + config.es.port);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Error Connecting to ES on ' + config.es.url + ':' + config.es.port);
+  } else {
+    console.log('Error Connecting to ES');
+  }
 });
 
 console.log("Setting up database communication...");
@@ -275,7 +281,7 @@ app.use(function(err, req, res){
   console.error(err.stack);
 
   // make this a nicer error later
-  res.send(500, 'Ewww! Something got broken on IXIT. Getting some tape and glue');
+  res.status(500).send('Ewww! Something got broken on IXIT. Getting some tape and glue');
 
 });
 

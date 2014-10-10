@@ -1,5 +1,6 @@
 var V4ult = require('../models/vault.js'),
     util = require('util'),
+    _ = require('lodash'),
     cors = require('../lib/middlewares/cors');
 
 
@@ -8,18 +9,21 @@ module.exports.routes = function(app){
 
   // Handle uploads through flow.js
   app.post('/upload', cors, function(req, res){
-    return res.json(400, false)
-    var fields = req.body;
-    var files = req.files;   
+    // return res.status(400).json(400);
+    var fields = _.extend({}, req.body, req.headers);
+    var files = req.files;
     //CORS Headers
     v4ult.postHandler(fields, files, function(status){
+      if (util.isError(status)) {
+        return res.status(500).json(status);
+      }
       //Send appoproiate response
       if(typeof status === 'object'){
-        res.json(200, status);
+        res.status(200).json(_.pick(status, ['ixid', 'type']));
       }else if(status === 2){
         res.send(200, {status: 'inprogress'});
       }else{
-        res.json(400, status);
+        res.status(400).json(status);
       }
     });
   });
@@ -27,11 +31,11 @@ module.exports.routes = function(app){
   // Handle cross-domain requests
   // NOTE: Uncomment this funciton to enable cross-domain request.
 
-  app.options('/upload', function(req, res){
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+  app.options('/upload', cors, function(req, res){
+    // res.header('Access-Control-Allow-Origin', '*');
+    // res.header('Access-Control-Allow-Headers', 'X-Requested-With');
     res.send(true, {
-      'Access-Control-Allow-Origin': '*'
+      // 'Access-Control-Allow-Origin': '*'
     }, 200);
   });
 
@@ -41,11 +45,11 @@ module.exports.routes = function(app){
 
     v4ult.getHandler(req.query, function(r){
       if(util.isError(r)){
-        res.json(404, r);
+        res.status(404).json(r);
       }else{
-        res.json(200, r);
+        res.status(200).json(r);
       }
     });
   });
- 
+
 };
