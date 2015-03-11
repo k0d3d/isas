@@ -51,6 +51,7 @@ function afterResourceFilesLoad() {
     // } catch(e) {
     //   console.log(e);
     // }
+    //
 
     app.set('showStackError', true);
 
@@ -239,7 +240,8 @@ function afterResourceFilesLoad() {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 
 console.log("Checking connection to ElasticSearch Server...");
-restler.get('http://' + config.es.url + ':' + config.es.port)
+var esurl = process.env.SEARCHBOX_SSL_URL || 'http://' + config.es.url + ':' + config.es.port;
+restler.get(esurl)
 .on('success', function (data) {
   if (data.status === 200) {
     if (process.env.NODE_ENV !== 'production') {

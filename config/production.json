@@ -1,14 +1,14 @@
 {
     "db": {
-        "url": "mongodb://dk33p_admin:busty@ds063929.mongolab.com:63929/heroku_app29361254",
-        "user": "dk33p_admin",
-        "password": "busty",
+        "url": "mongodb://heroku_app29361254:q7uul0kiros0a3u2ba2e9h638u@ds063929.mongolab.com:63929/heroku_app29361254",
+        "user": "heroku_app29361254",
+        "password": "q7uul0kiros0a3u2ba2e9h638u",
         "database": "heroku_app29361254",
         "port": 63929,
         "server": "ds063929.mongolab.com"
         },
     "express":{
-        "secret": "H&H#BDMSU@(@nsika*W@}{SA(*@",
+        "secret": "H&H#ew3235bQ!34BDMSU@(@nsika*W@}{SA(*@",
         "cors" : {
           "options" : {
             "origin": "*",
@@ -25,6 +25,6 @@
     },
     "app": {
         "name": "IXIT File Valut",
-        "server": "localhost:3001"
+        "server": "dk33p.herokuapp.com"
     }
 }

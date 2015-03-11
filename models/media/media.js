@@ -90,7 +90,7 @@ MediaSchema.statics = {
 			$where: function(){
 				return (this.progress === this.chunkCount) && this.visible === 1;
 			},
-			folder: options.folder
+			// folder: options.folder
 		},
 		function(err, i){
 			if(err){
