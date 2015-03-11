@@ -262,18 +262,18 @@ console.log("Setting up database communication...");
 require('./lib/db').open()
 .then(function () {
   console.log('Database Connection open...');
+  //load resource
+  afterResourceFilesLoad();
+
+  // actual application start
+  app.listen(port);
+  console.log('IXIT Document Service started on port '+port);
 
 })
 .catch(function (e) {
   console.log(e);
 });
 
-//load resource
-afterResourceFilesLoad();
-
-// actual application start
-app.listen(port);
-console.log('IXIT Document Service started on port '+port);
 
 // expose app
 exports = module.exports = app;
