@@ -86,14 +86,15 @@ Media Statics
 MediaSchema.statics = {
 	userFiles : function(userId, options, callback){
 
-		this.find({
+		var q = this.find({
 			'owner': userId,
 			$where: function(){
 				return (this.progress === this.chunkCount) && this.visible === 1;
 			},
 			// folder: options.folder
-		},
-		function(err, i){
+		});
+    q.sort({'completedDate' : -1});
+		q.exec(function(err, i){
 			if(err){
 				callback(err);
 			}else{

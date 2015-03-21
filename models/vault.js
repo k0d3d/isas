@@ -21,7 +21,6 @@ function V4ult(){
   this.chunkList = [];
   this.setFields =  function (fields) {
     var self = this, u = new Utility();
-
     self._chunkNumber = fields.flowChunkNumber;
     self._chunkSize = fields.flowChunkSize;
     self._totalSize = fields.flowTotalSize;
@@ -92,7 +91,6 @@ V4ult.prototype.save = function(prop, callback){
 V4ult.prototype.postHandler = function (fields, files, callback){
   var fm = new Fm(), utility = new Utility();
   var eventRegister = new EventRegister();
-
   var self = this;
 
   self.setFields(fields);
@@ -152,7 +150,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
     if(self._chunkNumber === self._totalChunks){
       //Create writeableStream.
       //Happens ONCE. after ^
-      var filepath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', self.vault_fileId());
+      var filepath = path.join(process.cwd(), 'v4nish', self.vault_fileId());
       var stream = fs.createWriteStream(filepath);
 
       //Run the $.write method
@@ -205,7 +203,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   });
 
   if(!files[self.fileParameterName] || !files[self.fileParameterName].size) {
-    callback(3);
+    callback(errors.nounce('UploadHasError'));
     //callback(3, null, null, null);
     return;
   }
@@ -222,7 +220,7 @@ V4ult.prototype.postHandler = function (fields, files, callback){
       callback(r);
     })
     .onError(function(err){
-      console.log(err);
+      // console.log(err.stack);
       callback(errors.nounce('UploadHasError'));
     })
     .start(chunkFilename);

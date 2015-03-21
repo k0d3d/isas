@@ -15,13 +15,13 @@ module.exports.routes = function(app){
     //CORS Headers
     v4ult.postHandler(fields, files, function(status){
       if (util.isError(status)) {
-        return res.status(500).json(status);
+        return res.status(400).json(status);
       }
       //Send appoproiate response
       if(typeof status === 'object'){
         res.status(200).json(_.pick(status, ['ixid', 'type']));
       }else if(status === 2){
-        res.send(200, {status: 'inprogress'});
+        res.status(200).json({status: 'inprogress'});
       }else{
         res.status(400).json(status);
       }
