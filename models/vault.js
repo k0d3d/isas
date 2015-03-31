@@ -169,11 +169,11 @@ V4ult.prototype.postHandler = function (fields, files, callback){
   eventRegister.on('deleteTemp', function(data, isDone){
     //Runs after the last chunk has been piped
     //Deletes all temporary files
+    return isDone(data);
     if(self._chunkNumber === self._totalChunks){
       fm.deleteTemp(self.vault_fileId(), self._owner, function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
       });
-      isDone(data);
     }else{
       isDone(data);
     }
