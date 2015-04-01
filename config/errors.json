@@ -34,6 +34,20 @@
     "defaultExplanation": "An error occured during the file upload.",
     "defaultResponse": "Error has been logged and Admin notified",
     "code": 605
+  },
+  {
+    "name": "OperationFailed",
+    "defaultMessage": "The operation failed with errors.",
+    "defaultExplanation": "An error occured during the file operation.",
+    "defaultResponse": "Error has been logged and Admin notified",
+    "code": 606
+  },
+  {
+    "name": "OperationHasErrors",
+    "defaultMessage": "The operation completed with errors.",
+    "defaultExplanation": "Errors occured during this file operation.",
+    "defaultResponse": "Errors have been logged and Admin notified",
+    "code": 607
   }
 
 ]

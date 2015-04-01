@@ -4,8 +4,8 @@ var V4ult = require('../models/vault.js'),
     cors = require('../lib/middlewares/cors');
 
 
-module.exports.routes = function(app){
-  var v4ult = new V4ult();
+module.exports.routes = function(app, redis_client){
+  var v4ult = new V4ult(redis_client);
 
   // Handle uploads through flow.js
   app.post('/upload', cors, function(req, res){
@@ -13,7 +13,8 @@ module.exports.routes = function(app){
     var fields = _.extend({}, req.body, req.headers);
     var files = req.files;
     //CORS Headers
-    v4ult.postHandler(fields, files, function(status){
+    v4ult.postHandler(fields, files)
+    .then(function(status){
       if (util.isError(status)) {
         return res.status(400).json(status);
       }

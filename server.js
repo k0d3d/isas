@@ -40,7 +40,7 @@ app.set('version', pjson.version);
 var port = process.env.PORT || 3001;
 
 
-function afterResourceFilesLoad() {
+function afterResourceFilesLoad(redis_client) {
 
     console.log('configuring application, please wait...');
 
@@ -177,7 +177,7 @@ function afterResourceFilesLoad() {
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app);
+    routes(app, redis_client);
 
 
     // assume "not found" in the error msgs
@@ -238,7 +238,23 @@ function afterResourceFilesLoad() {
 
 
 console.log("Running Environment: %s", process.env.NODE_ENV);
+/*Redis Connection*/
+console.log('Creating connection to redis server...');
+var redis_client = require('redis').createClient( config.redis.port, config.redis.host, {});
+if (config.redis.password) {
+    redis_client.auth(config.redis.password);
+}
+redis_client.on('ready', function () {
+  console.log('Redis connection is....ok');
+});
+redis_client.on('error', function (err) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(err);
+    console.log('Redis connection..%s:%s', config.redis.host, config.redis.port);
+  }
+});
 
+/*ElasticSearch Connection*/
 console.log("Checking connection to ElasticSearch Server...");
 var esurl = process.env.SEARCHBOX_SSL_URL || 'http://' + config.es.url + ':' + config.es.port;
 restler.get(esurl)
@@ -257,13 +273,14 @@ restler.get(esurl)
   }
 });
 
+/*MongoDB Connection*/
 console.log("Setting up database communication...");
 // setup database connection
 require('./lib/db').open()
 .then(function () {
   console.log('Database Connection open...');
   //load resource
-  afterResourceFilesLoad();
+  afterResourceFilesLoad(redis_client);
 
   // actual application start
   app.listen(port);
