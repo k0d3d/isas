@@ -238,7 +238,22 @@ function afterResourceFilesLoad() {
 
 
 console.log("Running Environment: %s", process.env.NODE_ENV);
+/*Redis Connection*/
+console.log('Creating connection to redis server...');
+var redis_client = require('redis').createClient( config.redis.port, config.redis.host, {});
+if (config.redis.password) {
+    redis_client.auth(config.redis.password);
+}
+redis_client.on('ready', function () {
+  console.log('Redis connection is....ok');
+});
+redis_client.on('error', function () {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Redis connection failure...%s:%s', config.redis.host, config.redis.port);
+  }
+});
 
+/*ElasticSearch Connection*/
 console.log("Checking connection to ElasticSearch Server...");
 var esurl = process.env.SEARCHBOX_SSL_URL || 'http://' + config.es.url + ':' + config.es.port;
 restler.get(esurl)
@@ -257,6 +272,7 @@ restler.get(esurl)
   }
 });
 
+/*MongoDB Connection*/
 console.log("Setting up database communication...");
 // setup database connection
 require('./lib/db').open()
