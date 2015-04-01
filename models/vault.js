@@ -1,7 +1,6 @@
 var Utility = require('../lib/utility.js'),
     Fm = require('../lib/file-manager.js'),
     Q = require('q'),
-    EventRegister = require('../lib/event_register.js').register,
     fs = require('fs'),
     path = require('path'),
     util = require('util'),
@@ -13,10 +12,12 @@ var Utility = require('../lib/utility.js'),
     mime = require('mime'),
     hashr = require('../lib/hash.js'),
     errors = require('../lib/errors.js'),
-    _ = require('underscore');
+    _ = require('lodash');
+
 
 //V4ult Class
-function V4ult(){
+function V4ult(redis_client){
+  this.redisClient = redis_client;
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
@@ -25,7 +26,7 @@ function V4ult(){
     self._chunkNumber = fields.flowChunkNumber;
     self._chunkSize = fields.flowChunkSize;
     self._totalSize = fields.flowTotalSize;
-    self.chunkId = u.cleanIdentifier(fields.flowIdentifier);
+    self._chunkId = u.cleanIdentifier(fields.flowIdentifier);
     self._filename = fields.flowFilename;
     // self._original_filename = fields.flowIdentifier;
     self._totalChunks = fields.flowTotalChunks;
@@ -36,7 +37,7 @@ function V4ult(){
 
   };
   this.vault_fileId = function () {
-    return [this._folder, this._owner, this.chunkId].join('-');
+    return [this._folder, this._owner, this._chunkId, this._totalSize].join('-');
   };
 
 }
@@ -48,33 +49,38 @@ var vFunc = {
    * @param  {Object} props chunk object.
    * @return {Promise}       Promise
    */
-  saveChunkToDB: function saveChunkToDB (prop) {
+  saveChunkToDB: function saveChunkToDB (fileObj) {
+    console.log('saveChunkToDB');
     var q = Q.defer();
     var utility = new Utility();
 
-    var q = Media.findOne({'owner': prop.owner, 'visible':1});
-    q.where('identifier', prop.identifier);
+    if ((fileObj.progress !== fileObj.chunkCount) || fileObj.progress != 1) {
+      q.resolve(fileObj);
+      return q.promise;
+    }
+    var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
+    q.where('identifier', fileObj.identifier);
     q.exec(function(err, foundDoc ){
       if(_.isNull(foundDoc)){
-        var media = new Media(prop);
-        media.mediaNumber = utility.mediaNumber();
+        var media = new Media(fileObj);
+        media.mediaNumber = ''+ utility.mediaNumber();
         media.save(function(err, foundDoc){
           if(err){
             q.reject(err);
           }else{
             foundDoc.index(function(err){
               if(!err){
-                q.resolve(foundDoc);
+                q.resolve({foundDoc:foundDoc, data: fileObj});
               }
             });
           }
         });
       }else{
-        Media.update({_id: foundDoc._id}, prop, function(err){
+        Media.update({_id: foundDoc._id}, fileObj, function(err){
           if(err){
             q.reject(err);
           }else{
-            q.resolve(foundDoc);
+            q.resolve({foundDoc:foundDoc, data: fileObj});
           }
         });
       }
@@ -87,79 +93,116 @@ var vFunc = {
    * where the file will be stored.
    * @return {[type]} [description]
    */
-  checkFolder: function checkFolder (data) {
+  checkFolder: function checkFolder (fileObj) {
     var q = Q.defer();
-
+    console.log('checkFolder');
 
     var cabinet = new Cabinet();
-    if (!data.folder) {
+    if (!fileObj.folder) {
       cabinet.createFolder({
-        name: data.name || 'Home',
-        owner: data.owner,
-        fileId: data.fileId,
-        type: (data.parent) ? 'sub': 'root'
+        name: fileObj.name || 'Home',
+        owner: fileObj.owner,
+        fileId: fileObj.fileId,
+        type: (fileObj.parent) ? 'sub': 'root'
       }, function(r){
-        data.folder = r._id;
-        q.resolve(data);
+        fileObj.folder = r._id;
+        q.resolve(fileObj);
       });
     } else {
-      q.resolve(data);
+      q.resolve(fileObj);
     }
     return q.promise;
   },
-  joinCompletedFileUpload: function joinCompletedFileUpload (self) {
+  /**
+   * when all the chunks / file parts have been uploaded,
+   * this will initiate a file join operation which uses a
+   * writable stream to pipe the
+   * @param  {[type]} fileObj [description]
+   * @return {[type]}         [description]
+   */
+  joinCompletedFileUpload: function joinCompletedFileUpload (fileObj) {
+    console.log('joinCompletedFileUpload');
     var q = Q.defer();
     var fm = new Fm();
 
-    if(self._chunkNumber === self._totalChunks){
+    if(fileObj.progress === fileObj.chunkCount){
       //Create writeableStream.
       //Happens ONCE. after ^
-      var filepath = path.join(process.cwd(), 'v4nish', self.vault_fileId());
+      var filepath = path.join(fm.FILESTORAGEDIR, fileObj.identifier);
       var stream = fs.createWriteStream(filepath);
 
       //Run the $.write method
-      fm.write(self.vault_fileId(), stream, function(){
+      fm.write(fileObj, stream, function(){
         //re-index es
         syncIndex();
 
-        q.resolve(self);
+        q.resolve(fileObj);
       });
 
     }else{
-      q.resolve(self);
+      q.resolve(fileObj);
     }
     return q.promise;
   },
-  saveChunkToRedis: function saveChunkToRedis () {
+  saveChunkToRedis: function saveChunkToRedis (fileObj, redisClient) {
+    console.log('saveChunkToRedis');
+    var q = Q.defer();
 
+    redisClient.hmset(fileObj.identifier, _.pick(fileObj, ['progress', 'identifier', 'chunkCount']),
+      function (err){
+        if (err) {
+          return q.reject(err);
+        }
+        redisClient.expire(fileObj.identifier, 5 * 60);
+        q.resolve(fileObj);
+      });
+
+    return q.promise;
   },
-  deleteTemp: function deleteTemp (self) {
+  /**
+   * deletes the upload chunks when a upload is completed
+   * or is cancelled.
+   * @param  {Object} fileObj hash with progress, chunkCount, identifier, owner
+   * @return {[type]}         resolves to fileObj hash, rejects with
+   */
+  deleteUploadChunks: function deleteUploadChunks (fileObj) {
+    console.log('vfunc deleteUploadChunks');
     var q = Q.defer();
     var fm = new Fm();
-    if(self._chunkNumber === self._totalChunks){
-      fm.deleteTemp(self.vault_fileId(), self._owner, function(f){
+    if(fileObj.progress === fileObj.chunkCount){
+      fm.clean(fileObj, fileObj.owner)
+      .then(function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
+        q.resolve(fileObj);
       });
     }else{
-      q.resolve(self);
+      q.resolve(fileObj);
     }
     return q.promise;
   },
   prepareResult: function prepareResult () {
 
   },
-  moveFile: function moveFile (args) {
+  /**
+   * moves a file upload from the system temporary directory
+   * to the APPCHUNKDIR.
+   * @param  {[type]} args Expects an object with properties, args.files; the files object
+   * from an upload middleware eg formidable, and args.self the upload data sent in the request.
+   * @return {[type]}      [description]
+   */
+  moveFile: function moveFile (self, files) {
     var q = Q.defer();
-    var fm = new Fm();
-    var files = args[0],
-        self = args[1];
-
+    var fm = new Fm('moveFile');
+    console.log();
     // Save the chunk (TODO: OVERWRITE)
     fs.rename(
       files[self.fileParameterName].path,
       fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
-      function(){
-        var tosaveObj = {
+      function(err){
+        if (err) {
+          return q.reject(err);
+        }
+        var fileObj = {
           progress: self._chunkNumber,
           identifier: self.vault_fileId(),
           filename: self._filename,
@@ -169,10 +212,10 @@ var vFunc = {
           owner: self._owner,
           type: self._filetype,
           folder: self._folder,
-          chunkId: self.chunkId,
+          chunkId: self._chunkId,
           completedDate: self._chunkNumber === self._totalChunks ? Date.now() : ''
         };
-        q.resolve(tosaveObj);
+        q.resolve(fileObj);
     });
     return q.promise;
   }
@@ -208,21 +251,24 @@ V4ult.prototype.postHandler = function (fields, files){
     return q.promise;
   }
 
-  vFunc.moveFile([files, self])
+  vFunc.moveFile(self, files)
   .then(vFunc.checkFolder)
   .then(vFunc.joinCompletedFileUpload)
-  .then(vFunc.saveChunkToRedis)
-  .then(function () {
-    return vFunc.saveChunkToDB();
+  .then(function (fileObj) {
+    return vFunc.saveChunkToRedis(fileObj, self.redisClient);
   })
-  .then(vFunc.deleteTemp)
-  .then(vFunc.prepareResult)
-  .done(function (r) {
-    q.resolve(r);
+  .then(function (fileObj) {
+    return vFunc.saveChunkToDB(fileObj);
   })
+  .then(vFunc.deleteUploadChunks)
   .catch(function (err) {
     console.log(err.stack);
     q.reject(errors.nounce('UploadHasError'));
+  })
+  .done(function (r) {
+    console.log('done gets called');
+    var m = (r.progress === r.chunkCount) ? 2 : r;
+    q.resolve(m);
   });
 
   return q.promise;

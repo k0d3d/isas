@@ -40,7 +40,7 @@ app.set('version', pjson.version);
 var port = process.env.PORT || 3001;
 
 
-function afterResourceFilesLoad() {
+function afterResourceFilesLoad(redis_client) {
 
     console.log('configuring application, please wait...');
 
@@ -177,7 +177,7 @@ function afterResourceFilesLoad() {
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app);
+    routes(app, redis_client);
 
 
     // assume "not found" in the error msgs
@@ -247,9 +247,10 @@ if (config.redis.password) {
 redis_client.on('ready', function () {
   console.log('Redis connection is....ok');
 });
-redis_client.on('error', function () {
+redis_client.on('error', function (err) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log('Redis connection failure...%s:%s', config.redis.host, config.redis.port);
+    console.log(err);
+    console.log('Redis connection..%s:%s', config.redis.host, config.redis.port);
   }
 });
 
@@ -279,7 +280,7 @@ require('./lib/db').open()
 .then(function () {
   console.log('Database Connection open...');
   //load resource
-  afterResourceFilesLoad();
+  afterResourceFilesLoad(redis_client);
 
   // actual application start
   app.listen(port);
