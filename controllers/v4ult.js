@@ -8,7 +8,7 @@ module.exports.routes = function(app, redis_client){
   var v4ult = new V4ult(redis_client);
 
   // Handle uploads through flow.js
-  app.post('/upload', cors, function(req, res){
+  app.post('/upload', cors, function(req, res, next){
     // return res.status(400).json(400);
     var fields = _.extend({}, req.body, req.headers);
     var files = req.files;
@@ -18,14 +18,9 @@ module.exports.routes = function(app, redis_client){
       if (util.isError(status)) {
         return res.status(400).json(status);
       }
-      //Send appoproiate response
-      if(typeof status === 'object'){
-        res.status(200).json(_.pick(status, ['ixid', 'type']));
-      }else if(status === 2){
-        res.status(200).json({status: 'inprogress'});
-      }else{
-        res.status(400).json(status);
-      }
+      res.status(200).json(status);
+    }, function (err) {
+      next(err);
     });
   });
 

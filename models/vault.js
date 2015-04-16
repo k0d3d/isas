@@ -51,42 +51,50 @@ var vFunc = {
    */
   saveChunkToDB: function saveChunkToDB (fileObj) {
     console.log('saveChunkToDB');
-    var q = Q.defer();
+    var d = Q.defer();
     var utility = new Utility();
 
-    if ((fileObj.progress !== fileObj.chunkCount) || fileObj.progress != 1) {
-      q.resolve(fileObj);
-      return q.promise;
+    //if its completed or just beginning
+    if ((fileObj.progress === fileObj.chunkCount) || fileObj.progress !== 1) {
+      var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
+      q.where('identifier', fileObj.identifier);
+      q.exec(function(err, foundDoc ){
+        if(!foundDoc){
+          var media = new Media(fileObj);
+          media.mediaNumber = ''+ utility.mediaNumber();
+          media.save(function(err, foundDoc){
+            if(err){
+              d.reject(err);
+            }else{
+              fileObj.fileDocument = foundDoc;
+              d.resolve(fileObj);
+              foundDoc.index(function(err){
+                if(err){
+                  console.log(err);
+                }
+              });
+            }
+          });
+        }else{
+          Media.update({identifier: fileObj.identifier}, fileObj, function(err, done){
+            if(err){
+              d.reject(err);
+            }
+            if (done){
+              fileObj.fileDocument = foundDoc;
+              d.resolve(fileObj);
+            } else {
+              d.reject(errors.nounce('UpdateHasError'));
+            }
+          });
+        }
+      });
+    } else {
+      d.resolve(fileObj);
+      return d.promise;
     }
-    var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
-    q.where('identifier', fileObj.identifier);
-    q.exec(function(err, foundDoc ){
-      if(_.isNull(foundDoc)){
-        var media = new Media(fileObj);
-        media.mediaNumber = ''+ utility.mediaNumber();
-        media.save(function(err, foundDoc){
-          if(err){
-            q.reject(err);
-          }else{
-            foundDoc.index(function(err){
-              if(!err){
-                q.resolve({foundDoc:foundDoc, data: fileObj});
-              }
-            });
-          }
-        });
-      }else{
-        Media.update({_id: foundDoc._id}, fileObj, function(err){
-          if(err){
-            q.reject(err);
-          }else{
-            q.resolve({foundDoc:foundDoc, data: fileObj});
-          }
-        });
-      }
-    });
 
-    return q.promise;
+    return d.promise;
   },
   /**
    * attempts to create or locate the virtual folder
@@ -132,7 +140,8 @@ var vFunc = {
       var stream = fs.createWriteStream(filepath);
 
       //Run the $.write method
-      fm.write(fileObj, stream, function(){
+      fm.write(fileObj, stream)
+      .then(function(){
         //re-index es
         syncIndex();
 
@@ -173,6 +182,10 @@ var vFunc = {
       fm.clean(fileObj, fileObj.owner)
       .then(function(f){
         console.log(f === true ? 'Delete Completed': 'Error Deleting');
+        q.resolve(fileObj);
+      }, function (err) {
+        console.log('Error Deleting');
+        console.log(err);
         q.resolve(fileObj);
       });
     }else{
@@ -267,8 +280,8 @@ V4ult.prototype.postHandler = function (fields, files){
   })
   .done(function (r) {
     console.log('done gets called');
-    var m = (r.progress === r.chunkCount) ? 2 : r;
-    q.resolve(m);
+    // var m = (r.progress === r.chunkCount) ? r : 2;
+    q.resolve({ixid: r.fileDocument.ixid, type: r.fileDocument.type});
   });
 
   return q.promise;
