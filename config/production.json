@@ -25,6 +25,6 @@
     },
     "app": {
         "name": "IXIT File Valut",
-        "server": "dk33p.herokuapp.com"
+        "server": "ec2-54-191-53-79.us-west-2.compute.amazonaws.com"
     }
 }

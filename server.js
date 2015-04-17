@@ -29,6 +29,7 @@ var express = require('express'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
+    url = require('url'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -240,9 +241,12 @@ function afterResourceFilesLoad(redis_client) {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
-var redis_client = require('redis').createClient( config.redis.port, config.redis.host, {});
-if (config.redis.password) {
-    redis_client.auth(config.redis.password);
+var REDIS = url.parse( process.env.REDIS_URL);
+
+var redis_client = require('redis').createClient( REDIS.port, REDIS.host, {});
+var REDIS_AUTH = REDIS.auth.split(':');
+if (REDIS_AUTH[1]) {
+    redis_client.auth(REDIS_AUTH[1]);
 }
 redis_client.on('ready', function () {
   console.log('Redis connection is....ok');
@@ -250,24 +254,24 @@ redis_client.on('ready', function () {
 redis_client.on('error', function (err) {
   if (process.env.NODE_ENV !== 'production') {
     console.log(err);
-    console.log('Redis connection..%s:%s', config.redis.host, config.redis.port);
+    console.log('Redis connection..%s:%s', REDIS.host, REDIS.port);
   }
 });
 
 /*ElasticSearch Connection*/
 console.log("Checking connection to ElasticSearch Server...");
-var esurl = process.env.SEARCHBOX_SSL_URL || 'http://' + config.es.url + ':' + config.es.port;
+var esurl = process.env.ES_SSL_URL || process.env.ES_URL;
 restler.get(esurl)
 .on('success', function (data) {
   if (data.status === 200) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('ES running on ' + config.es.url + ':' + config.es.port);
+      console.log('ES running on ' + process.env.ES_URL);
     }
   }
 })
 .on('error', function (data) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log('Error Connecting to ES on ' + config.es.url + ':' + config.es.port);
+    console.log('Error Connecting to ES on ' + process.env.ES_URL);
   } else {
     console.log('Error Connecting to ES');
   }
