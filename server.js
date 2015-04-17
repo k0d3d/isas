@@ -242,12 +242,12 @@ console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
 var REDIS = url.parse( process.env.REDIS_URL);
-
-var redis_client = require('redis').createClient( REDIS.port, REDIS.host, {});
-var REDIS_AUTH = REDIS.auth.split(':');
-if (REDIS_AUTH[1]) {
-    redis_client.auth(REDIS_AUTH[1]);
+var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
+if (REDIS.auth) {
+  var REDIS_AUTH = REDIS.auth.split(':');
+  redis_client.auth(REDIS_AUTH[1]);
 }
+
 redis_client.on('ready', function () {
   console.log('Redis connection is....ok');
 });

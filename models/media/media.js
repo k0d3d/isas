@@ -150,12 +150,13 @@ MediaSchema.statics = {
 /**
  * plugin
  */
+var ESURL = require('url').parse(process.env.ES_SSL_URL || process.env.ES_URL);
 
 MediaSchema.plugin(mongoosastic, {
-	host: config.es.url,
-	port: config.es.port,
-  // protocol: 'https',
-  // auth: config.es.auth,
+	host: ESURL.hostname,
+	port: ESURL.port,
+  protocol: ESURL.protocol.substring(0, ESURL.protocol.length -1),
+  auth: ESURL.auth,
   index: 'medias',
 	hydrate: true,
 	hydrateOptions:{
