@@ -118,7 +118,7 @@ function afterResourceFilesLoad(redis_client) {
             db: config.db.database,
             host: config.db.server,
             port: config.db.port,
-            auto_reconnect: true,
+            autoReconnect: true,
             username: config.db.user,
             password: config.db.password,
             collection: "mongoStoreSessions"
