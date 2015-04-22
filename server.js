@@ -178,10 +178,22 @@ function afterResourceFilesLoad(redis_client) {
         res.send('ready');
     });
 
+
+    var REDIS = url.parse(process.env.REDIS_URL || 'redis://127.0.0.1:6379'), con_opts = {};
+
+    con_opts.port = REDIS.port;
+    con_opts.host = REDIS.hostname;
+
+    if (REDIS.auth) {
+      var REDIS_AUTH = REDIS.auth.split(':');
+      con_opts.auth = REDIS_AUTH[1];
+    }
+
+
     //job queue instance
-    var jobQueue = kue.createQueue({
-      redis: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
-    });
+    var jobQueue = kue.createQueue(con_opts);
+
+
     // our routes
     console.log('setting up routes, please wait...');
     routes(app, redis_client, jobQueue);
