@@ -23,7 +23,8 @@ var MediaSchema = new Schema({
 	tags:{type: String, index: true, es_indexed:true},
   chunkId: {type: String},
 	folder: {type: Schema.ObjectId, ref: 'Folder'},
-  relativePath: {type: String}
+  relativePath: {type: String},
+  s3name: {type: String}
 }, {
     toObject: { virtuals: true },
     toJSON: { virtuals: true }
