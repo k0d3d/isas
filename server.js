@@ -24,12 +24,12 @@ var express = require('express'),
     restler = require('restler'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
-    uploader = require('./lib/uploader.js'),
+    multer = require('multer'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
-    busboy = require('connect-busboy'),
     url = require('url'),
+    Filemanager = require('./lib/file-manager.js'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -100,7 +100,6 @@ function afterResourceFilesLoad(redis_client) {
     }));
     app.use(bodyParser.json());
 
-    app.use(busboy);
 
     app.use(methodOverride());
 
@@ -108,7 +107,8 @@ function afterResourceFilesLoad(redis_client) {
     app.use(downloader());
 
     // load uploader middleware
-    app.use(uploader());
+    var fm = new Filemanager();
+    app.use(multer({ dest: fm.APPCHUNKDIR}));
 
     // setup session management
     console.log('setting up session management, please wait...');

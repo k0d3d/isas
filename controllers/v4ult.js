@@ -10,10 +10,11 @@ module.exports.routes = function(app, redis_client){
   // Handle uploads through flow.js
   app.post('/upload', cors, function(req, res, next){
     // return res.status(400).json(400);
-    var fields = _.extend({}, req.body, req.headers);
-    var files = req.files;
+    var fields = _.extend({}, req.body, req.headers, req.fields);
+
+    return res.status(200).json();
     //CORS Headers
-    v4ult.postHandler(fields, files)
+    v4ult.postHandler(fields, req.files)
     .then(function(status){
       if (util.isError(status)) {
         return res.status(400).json(status);
