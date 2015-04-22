@@ -259,12 +259,12 @@ function afterResourceFilesLoad(redis_client) {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
-<<<<<<< HEAD
+//<<<<<<< HEAD
 var REDIS = url.parse( process.env.REDIS_URL);
 
-=======
+//=======
 var REDIS = url.parse(process.env.REDIS_URL);
->>>>>>> 075efaffe54c9e4af37a8438748ea838a8fc58a5
+//>>>>>>> 075efaffe54c9e4af37a8438748ea838a8fc58a5
 var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
 if (REDIS.auth) {
   var REDIS_AUTH = REDIS.auth.split(':');
