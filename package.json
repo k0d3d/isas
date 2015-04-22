@@ -43,6 +43,7 @@
     "hashids": "1.0.0",
     "jade": "latest",
     "jsonwebtoken": "^1.1.2",
+    "kue": "^0.8.12",
     "lodash": "latest",
     "mean-logger": "latest",
     "method-override": "latest",
@@ -50,6 +51,7 @@
     "mongoosastic": "latest",
     "mongoose": "latest",
     "morgan": "latest",
+    "multer": "^0.1.8",
     "oauth2orize": "latest",
     "passport": "latest",
     "passport-facebook": "latest",
@@ -63,6 +65,7 @@
     "q": "latest",
     "redis": "^0.12.1",
     "restler": "latest",
+    "s3": "^4.4.0",
     "underscore": "latest",
     "view-helpers": "latest"
   },

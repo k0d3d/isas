@@ -21,15 +21,16 @@ var express = require('express'),
     session = require('express-session'),
     // favicon = require('serve-favicon'),
     compress = require('compression'),
-    mongoosastic = require('mongoosastic'),
     restler = require('restler'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
-    uploader = require('./lib/uploader.js'),
+    multer = require('multer'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
     url = require('url'),
+    Filemanager = require('./lib/file-manager.js'),
+    kue = require('kue'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -100,13 +101,15 @@ function afterResourceFilesLoad(redis_client) {
     }));
     app.use(bodyParser.json());
 
+
     app.use(methodOverride());
 
     //load download middleware
     app.use(downloader());
 
     // load uploader middleware
-    app.use(uploader());
+    var fm = new Filemanager();
+    app.use(multer({ dest: fm.APPCHUNKDIR}));
 
     // setup session management
     console.log('setting up session management, please wait...');
@@ -118,7 +121,7 @@ function afterResourceFilesLoad(redis_client) {
             db: config.db.database,
             host: config.db.server,
             port: config.db.port,
-            auto_reconnect: true,
+            autoReconnect: true,
             username: config.db.user,
             password: config.db.password,
             collection: "mongoStoreSessions"
@@ -175,10 +178,11 @@ function afterResourceFilesLoad(redis_client) {
         res.send('ready');
     });
 
-
+    //job queue instance
+    var jobQueue = kue.createQueue();
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, redis_client);
+    routes(app, redis_client, jobQueue);
 
 
     // assume "not found" in the error msgs
