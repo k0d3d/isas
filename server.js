@@ -30,6 +30,7 @@ var express = require('express'),
     helpers = require('view-helpers'),
     url = require('url'),
     Filemanager = require('./lib/file-manager.js'),
+    kue = require('kue'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -177,10 +178,11 @@ function afterResourceFilesLoad(redis_client) {
         res.send('ready');
     });
 
-
+    //job queue instance
+    var jobQueue = kue.createQueue();
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, redis_client);
+    routes(app, redis_client, jobQueue);
 
 
     // assume "not found" in the error msgs

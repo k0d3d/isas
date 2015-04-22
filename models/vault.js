@@ -16,8 +16,9 @@ var Utility = require('../lib/utility.js'),
 
 
 //V4ult Class
-function V4ult(redis_client){
+function V4ult(redis_client, jobQueue){
   this.redisClient = redis_client;
+  this.jobQueue = jobQueue;
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
@@ -264,24 +265,56 @@ V4ult.prototype.postHandler = function (fields, files){
     return q.promise;
   }
 
-  vFunc.moveFile(self, files)
-  .then(vFunc.checkFolder)
-  .then(vFunc.joinCompletedFileUpload)
-  .then(function (fileObj) {
-    return vFunc.saveChunkToRedis(fileObj, self.redisClient);
-  })
-  .then(function (fileObj) {
-    return vFunc.saveChunkToDB(fileObj);
-  })
-  .then(vFunc.deleteUploadChunks)
-  .catch(function (err) {
-    console.log(err.stack);
-    q.reject(errors.nounce('UploadHasError'));
-  })
-  .done(function (r) {
-    console.log('done gets called');
-    // var m = (r.progress === r.chunkCount) ? r : 2;
-    q.resolve({ixid: r.fileDocument.ixid, type: r.fileDocument.type});
+  //should add chunk processing to job queue
+  var job = self.jobQueue.create('upload', {
+    _chunkNumber : self._chunkNumber,
+    _chunkSize : self._chunkSize,
+    _totalSize : self._totalSize,
+    _chunkId : self._chunkId,
+    _filename : self._filename,
+    _filetype : self._filetype,
+    _owner : self._owner
+  });
+
+  job.on('complete', function (){
+      console.log('Job', job.id, ' has completed');
+  });
+  job.on('failed', function (){
+      console.log('Job', job.id, ' has failed');
+  });
+
+  job.save(function (err) {
+    if (err) {
+      console.log(err.stack);
+      q.reject(errors.nounce('UploadHasError'));
+    }
+    q.resolve({jobId: job.id});
+  });
+
+  this.jobQueue.process('upload', function (job, done){
+    /* carry out all the job function here */
+
+    vFunc.moveFile(self, files)
+    .then(vFunc.checkFolder)
+    .then(vFunc.joinCompletedFileUpload)
+    .then(function (fileObj) {
+      return vFunc.saveChunkToRedis(fileObj, self.redisClient);
+    })
+    .then(function (fileObj) {
+      return vFunc.saveChunkToDB(fileObj);
+    })
+    .then(vFunc.deleteUploadChunks)
+    .catch(function (err) {
+      console.log(err.stack);
+      q.reject(errors.nounce('UploadHasError'));
+    })
+    .done(function (r) {
+      console.log('done gets called');
+      // var m = (r.progress === r.chunkCount) ? r : 2;
+      done && done();
+
+    });
+
   });
 
   return q.promise;

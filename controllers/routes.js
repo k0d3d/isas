@@ -9,12 +9,12 @@ var redis = require('redis'),
  * Expose routes
  */
 
-module.exports = function (app, redis_client) {
+module.exports = function (app, redis_client, jobQueue) {
 
-  var vault = require("./v4ult");
-  vault.routes(app, redis_client);
+  var vault = require('./v4ult');
+  vault.routes(app, redis_client, jobQueue);
 
-  var cabinet = require("./cabinet");
+  var cabinet = require('./cabinet');
   cabinet.routes(app, redis_client);
 
 
