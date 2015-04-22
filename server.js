@@ -179,7 +179,9 @@ function afterResourceFilesLoad(redis_client) {
     });
 
     //job queue instance
-    var jobQueue = kue.createQueue();
+    var jobQueue = kue.createQueue({
+      redis: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
+    });
     // our routes
     console.log('setting up routes, please wait...');
     routes(app, redis_client, jobQueue);
@@ -245,7 +247,7 @@ function afterResourceFilesLoad(redis_client) {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
-var REDIS = url.parse( process.env.REDIS_URL);
+var REDIS = url.parse(process.env.REDIS_URL);
 var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
 if (REDIS.auth) {
   var REDIS_AUTH = REDIS.auth.split(':');
