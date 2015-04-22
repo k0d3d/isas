@@ -21,7 +21,6 @@ var express = require('express'),
     session = require('express-session'),
     // favicon = require('serve-favicon'),
     compress = require('compression'),
-    mongoosastic = require('mongoosastic'),
     restler = require('restler'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
@@ -29,6 +28,7 @@ var express = require('express'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
+    busboy = require('connect-busboy'),
     url = require('url'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
@@ -99,6 +99,8 @@ function afterResourceFilesLoad(redis_client) {
       extended: true
     }));
     app.use(bodyParser.json());
+
+    app.use(busboy);
 
     app.use(methodOverride());
 

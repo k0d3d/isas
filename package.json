@@ -25,6 +25,7 @@
     "aws-sdk": "latest",
     "bcrypt": "latest",
     "body-parser": "latest",
+    "busboy": "^0.2.9",
     "colors": "latest",
     "common-errors": "latest",
     "compression": "latest",
@@ -43,6 +44,7 @@
     "hashids": "1.0.0",
     "jade": "latest",
     "jsonwebtoken": "^1.1.2",
+    "kue": "^0.8.12",
     "lodash": "latest",
     "mean-logger": "latest",
     "method-override": "latest",
@@ -63,6 +65,7 @@
     "q": "latest",
     "redis": "^0.12.1",
     "restler": "latest",
+    "s3": "^4.4.0",
     "underscore": "latest",
     "view-helpers": "latest"
   },
