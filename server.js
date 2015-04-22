@@ -179,7 +179,7 @@ function afterResourceFilesLoad(redis_client) {
     });
 
 
-    var REDIS = url.parse(process.env.REDIS_URL || 'redis://127.0.0.1:6379'), con_opts = {};
+    var REDIS = url.parse(process.env.REDIS_URL), con_opts = {};
 
     con_opts.port = REDIS.port;
     con_opts.host = REDIS.hostname;
@@ -189,9 +189,11 @@ function afterResourceFilesLoad(redis_client) {
       con_opts.auth = REDIS_AUTH[1];
     }
 
+//console.log(con_opts);
+
 
     //job queue instance
-    var jobQueue = kue.createQueue(con_opts);
+    var jobQueue = kue.createQueue({redis: con_opts});
 
 
     // our routes
