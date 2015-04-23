@@ -31,6 +31,7 @@ var express = require('express'),
     url = require('url'),
     Filemanager = require('./lib/file-manager.js'),
     kue = require('kue'),
+    s3 = require('s3'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -141,10 +142,6 @@ function afterResourceFilesLoad(redis_client) {
     // should be declared after session and flash
     app.use(helpers(pjson.name));
 
-    // set our default view engine
-    app.set('views', __dirname + '/views');
-    app.set('view engine', 'jade');
-
 
     //pass in the app config params in to locals
     app.use(function(req, res, next) {
@@ -179,7 +176,7 @@ function afterResourceFilesLoad(redis_client) {
     });
 
 
-    var REDIS = url.parse(process.env.REDIS_URL), con_opts = {};
+    var REDIS = url.parse(process.env.REDIS_URL || 'redis://127.0.0.1:6379'), con_opts = {};
 
     con_opts.port = REDIS.port;
     con_opts.host = REDIS.hostname;
@@ -189,16 +186,28 @@ function afterResourceFilesLoad(redis_client) {
       con_opts.auth = REDIS_AUTH[1];
     }
 
-//console.log(con_opts);
-
-
     //job queue instance
     var jobQueue = kue.createQueue({redis: con_opts});
+
+    //s3 upload client
+    var s3client  = s3.createClient({
+        maxAsyncS3: 20,     // this is the default
+        s3RetryCount: 3,    // this is the default
+        s3RetryDelay: 1000, // this is the default
+        multipartUploadThreshold: 20971520, // this is the default (20 MB)
+        multipartUploadSize: 15728640, // this is the default (15 MB)
+        s3Options: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          // any other options are passed to new AWS.S3()
+          // See: http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html#constructor-property
+        },
+      });
 
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, redis_client, jobQueue);
+    routes(app, redis_client, jobQueue, s3client);
 
 
     // assume "not found" in the error msgs
@@ -261,12 +270,8 @@ function afterResourceFilesLoad(redis_client) {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
-//<<<<<<< HEAD
-var REDIS = url.parse( process.env.REDIS_URL);
 
-//=======
 var REDIS = url.parse(process.env.REDIS_URL);
-//>>>>>>> 075efaffe54c9e4af37a8438748ea838a8fc58a5
 var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
 if (REDIS.auth) {
   var REDIS_AUTH = REDIS.auth.split(':');

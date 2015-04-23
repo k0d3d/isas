@@ -16,9 +16,10 @@ var Utility = require('../lib/utility.js'),
 
 
 //V4ult Class
-function V4ult(redis_client, jobQueue){
+function V4ult(redis_client, jobQueue, s3client){
   this.redisClient = redis_client;
   this.jobQueue = jobQueue;
+  this.s3client = s3client;
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
@@ -232,6 +233,33 @@ var vFunc = {
         q.resolve(fileObj);
     });
     return q.promise;
+  },
+  sendToS3 : function sendToS3 (client, vault_fileId) {
+    var q = Q.defer();
+    var fm = new Fm();
+
+    var params = {
+      localFile: path.join(fm.FILESTORAGEDIR, vault_fileId),
+
+      s3Params: {
+        Bucket: 'dkeep-bucket',
+        Key: vault_fileId,
+        // other options supported by putObject, except Body and ContentLength.
+        // See: http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#putObject-property
+      },
+    };
+    var uploader = client.uploadFile(params);
+
+    uploader.on('error', function(err) {
+      // console.error("unable to upload:", err.stack);
+      q.reject(err);
+    });
+
+    uploader.on('end', function() {
+      q.resolve(true);
+    });
+
+    return q.promise;
   }
 };
 
@@ -291,7 +319,7 @@ V4ult.prototype.postHandler = function (fields, files){
     q.resolve({jobId: job.id});
   });
 
-  this.jobQueue.process('upload', function (job, done){
+  self.jobQueue.process('upload', function (job, done){
     /* carry out all the job function here */
 
     vFunc.moveFile(self, files)
@@ -306,13 +334,67 @@ V4ult.prototype.postHandler = function (fields, files){
     .then(vFunc.deleteUploadChunks)
     .catch(function (err) {
       console.log(err.stack);
+      done(err);
       q.reject(errors.nounce('UploadHasError'));
     })
-    .done(function (r) {
-      console.log('done gets called');
-      // var m = (r.progress === r.chunkCount) ? r : 2;
-      done && done();
+    .done(function () {
+      if (done) {
+        done();
+      }
+      self.s3uploader();
 
+    }, function (err) {
+      done(err);
+    });
+
+  });
+
+  return q.promise;
+};
+
+V4ult.prototype.s3uploader = function s3uploader () {
+  var self = this;
+  var q = Q.defer();
+  //should add chunk processing to job queue
+  var job = self.jobQueue.create('s3upload', {
+    _totalSize : self._totalSize,
+    _filename : self._filename,
+    _filetype : self._filetype,
+    _owner : self._owner,
+    _identifier: self.vault_fileId()
+  });
+
+  job.on('complete', function (){
+      console.log('Job', job.id, ' has completed');
+  });
+  job.on('failed', function (){
+      console.log('Job', job.id, ' has failed');
+  });
+
+  job.save(function (err) {
+    if (err) {
+      console.log(err.stack);
+      q.reject(errors.nounce('S3UploadHasError'));
+    }
+    q.resolve({jobId: job.id});
+  });
+
+  self.jobQueue.process('s3upload', function (job, done){
+    /* carry out all the job function here */
+
+    vFunc.sendToS3(self.s3client, self.vault_fileId())
+    .catch(function (err) {
+      console.log(err.stack);
+      done(err);
+      q.reject(errors.nounce('S3UploadHasError'));
+    })
+    .done(function () {
+      if (done) {
+        done();
+      }
+
+    }, function (err) {
+      done(err);
     });
 
   });
