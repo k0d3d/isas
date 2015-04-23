@@ -191,7 +191,7 @@ function afterResourceFilesLoad(redis_client) {
 
 
     //job queue instance
-    var jobQueue = kue.createQueue(con_opts);
+    var jobQueue = kue.createQueue({redis: con_opts});
 
 
     // our routes
