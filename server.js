@@ -179,7 +179,7 @@ function afterResourceFilesLoad(redis_client) {
     });
 
 
-    var REDIS = url.parse(process.env.REDIS_URL || 'redis://127.0.0.1:6379'), con_opts = {};
+    var REDIS = url.parse(process.env.REDIS_URL), con_opts = {};
 
     con_opts.port = REDIS.port;
     con_opts.host = REDIS.hostname;
@@ -188,6 +188,8 @@ function afterResourceFilesLoad(redis_client) {
       var REDIS_AUTH = REDIS.auth.split(':');
       con_opts.auth = REDIS_AUTH[1];
     }
+
+//console.log(con_opts);
 
 
     //job queue instance
@@ -259,11 +261,17 @@ function afterResourceFilesLoad(redis_client) {
 console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
+//<<<<<<< HEAD
+var REDIS = url.parse( process.env.REDIS_URL);
+
+//=======
 var REDIS = url.parse(process.env.REDIS_URL);
+//>>>>>>> 075efaffe54c9e4af37a8438748ea838a8fc58a5
 var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
 if (REDIS.auth) {
   var REDIS_AUTH = REDIS.auth.split(':');
-  redis_client.auth(REDIS_AUTH[1]);
+
+redis_client.auth(REDIS_AUTH[1]);
 }
 
 redis_client.on('ready', function () {
