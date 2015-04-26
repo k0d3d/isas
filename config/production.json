@@ -25,6 +25,15 @@
     },
     "app": {
         "name": "IXIT File Valut",
-        "server": "ec2-54-191-53-79.us-west-2.compute.amazonaws.com"
+        "server": "ec2-54-191-53-79.us-west-2.compute.amazonaws.com",
+        "AWS_S3" : {
+
+            "S3_BUCKET": "dkeep-bucket-production",
+        },
+        "AWS_CLOUDFRONT" :{
+            "ID" : "APKAJVIG4YFNAIMHOWKA",
+            "CNAME": "files.i-x.it",
+            "PROTOCOL": "http"
+        },
     }
 }

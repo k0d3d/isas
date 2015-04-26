@@ -11,7 +11,16 @@
     },
     "app": {
         "name": "IXIT - File Sharing and Hosting",
-        "home": "dk33p"
+        "home": "dk33p",
+        "AWS_S3" : {
+
+            "S3_BUCKET": "dkeep-bucket-dev",
+        },
+        "AWS_CLOUDFRONT" :{
+            "ID" : "APKAJVIG4YFNAIMHOWKA",
+            "CNAME": "files.i-x.it",
+            "PROTOCOL": "http"
+        },
     },
     "redis": {
       "port": 6379,

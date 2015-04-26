@@ -9,6 +9,8 @@ var Media = require('./media/media.js').Media,
     fs = require('fs'),
     path = require('path'),
     util = require('util'),
+    url = require('url'),
+    CF = require('aws-cloudfront-sign'),
     Fm = require('../lib/file-manager.js');
 
 /*
@@ -45,9 +47,9 @@ CabinetObject.prototype.requestFolderProps = function requestFolderProps (userId
 /**
  * find files belonging to a certain user. An optional
  * options argument can be passed through to filter
- * the results. 
+ * the results.
  * @param  {[type]}   userId   [description]
- * @param  {object}   options  Query parameters to filter results. 
+ * @param  {object}   options  Query parameters to filter results.
  * 'id' here is the folderId used for this query.
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
@@ -110,10 +112,10 @@ CabinetObject.prototype.openUserFolder = function openUserFolder (userId, option
       }else{
         folder.folders = r;
         isDone(folder);
-      }      
+      }
     });
   });
-  
+
 
 
   register
@@ -128,8 +130,8 @@ CabinetObject.prototype.openUserFolder = function openUserFolder (userId, option
 };
 
 /**
- * Fetches all folders belonging to a user. 
- * Filtered by folders that are subfolders of the folder being 
+ * Fetches all folders belonging to a user.
+ * Filtered by folders that are subfolders of the folder being
  * queried. Using the parent property.
  * @param  {[type]}   userId  [description]
  * @param  {Object}   options Object containing the id and the parentid propterty
@@ -138,8 +140,8 @@ CabinetObject.prototype.openUserFolder = function openUserFolder (userId, option
  */
 CabinetObject.prototype.findSubFolder = function(userId, options, cb){
   Folder.find({
-    //Parent is the id of the folder being 
-    //queried. Shows the heirachial relationship. 
+    //Parent is the id of the folder being
+    //queried. Shows the heirachial relationship.
     parent: options.id,
     owner: userId
   })
@@ -215,7 +217,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
  CabinetObject.prototype.deleteFileRecord = function(obj, callback){
   var fm = new Fm();
 
-    //Fetch More Data one 
+    //Fetch More Data one
     // function produceIdentifier(media_id)
     // console.log(obj);
     //var media = new Media();
@@ -282,7 +284,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
       identifier = i.identifier;
       fm.clean(identifier,null, options);
     }
-  }); 
+  });
 };
 
 /**
@@ -314,15 +316,21 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
  * @return {[type]}           [description]
  */
  CabinetObject.prototype.getFile = function(mediaId, cb){
-  Media.findOne({'mediaNumber': mediaId, 'visible': 1})
-  .lean()
-  .exec(function(err, i){
-    if(err){
-      cb(new Error(err));
-    }else{
-      cb(i);
-    }
-  });
+    var q = Q.defer();
+
+    Media.findOne({'mediaNumber': mediaId, 'visible': 1})
+    .lean()
+    .exec(function(err, i){
+      if(err){
+        cb(err);
+        return q.reject(err)
+      }else{
+        cb(i);
+        return q.resolve(i);
+      }
+    });
+
+    return q.promise;
 };
 
 /**
@@ -357,7 +365,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
       }else{
         cb(new Error('missing file'));
       }
-    });    
+    });
   });
 
 };
@@ -370,8 +378,8 @@ CabinetObject.prototype.count = function(userId, cb){
       owner: userId,
       visible: 1
     }
-  },  
-  { 
+  },
+  {
     $group: {
       _id: '$owner',
       size: {
@@ -396,7 +404,7 @@ CabinetObject.prototype.createFolder = function(props, cb){
   if(!props.name) {return cb(new Error('Empty Folder name'));}
   if(!props.owner) {return cb(new Error('Owner not supplied'));}
   if(props.type === 'sub' && !props.parent) {return cb(new Error('Parent folder not supplied'));}
-  
+
   var folderId = [props.name, props.owner, props.parent].join('-');
 
   //Find the folder first
@@ -406,7 +414,7 @@ CabinetObject.prototype.createFolder = function(props, cb){
     if(!_.isEmpty(i)){
       cb(i);
     }else{
-      //If we cant find a folder 
+      //If we cant find a folder
       //we make one.
       var folder = new Folder(props);
       folder.folderId =  folderId;
@@ -423,8 +431,8 @@ CabinetObject.prototype.createFolder = function(props, cb){
 };
 
 /**
- * deletes a folder from the db. The folder 
- * must be empty i.e. contain no files or 
+ * deletes a folder from the db. The folder
+ * must be empty i.e. contain no files or
  * sub folders for the removal to be successful.
  * @param  {object}   obj An object with folderId and userId
  * properties
@@ -464,7 +472,7 @@ CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, c
         isDone(errors.nounce('FolderHasError'));
         // isDone(errors.nounce('FolderHasError'));
       }
-    });    
+    });
   });
   register.once('fetchSubFolders', function (data, isDone) {
     self.findSubFolder(data.owner, {id: data._id}, function(r){
@@ -474,8 +482,8 @@ CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, c
         isDone(data);
       }else{
         isDone(errors.nounce('FolderHasError'));
-      }      
-    });    
+      }
+    });
   });
   register.once('removeFolder', function (data, isDone) {
       //data is a mongoose object with
@@ -492,7 +500,7 @@ CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, c
   //delete folder files,
   //delete folder
   //send response
-  
+
   register
   .queue('findFolder', 'fetchFiles', 'fetchSubFolders', 'removeFolder')
   .onError(function (err) {
@@ -502,6 +510,42 @@ CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, c
     cb(r);
   })
   .start(obj);
+};
+
+
+CabinetObject.prototype.getSignedURI = function getSignedURI (user, mediaId) {
+  //check if user is authd to view file
+
+  //get
+  var q = Q.defer(), self = this;
+  var t = new Date();
+  self.getFile(mediaId)
+  .then(function (file) {
+    var options = {keypairId: 'APKAJM2FEVTI7BNPCY4A', privateKeyPath: '/foo/bar'};
+    // var signedUrl = CF.getSignedUrl(config.app.AWS_CLOUDFRONT.METHOD + '://' + config.app.AWS_CLOUDFRONT.CNAME + '/' +  path/to/s3/object', options);
+    var signedUrl = CF.getSignedUrl(url.format({
+      protocol : config.app.AWS_CLOUDFRONT.PROTOCOL,
+      hostname : config.app.AWS_CLOUDFRONT.CNAME,
+      pathname : config.app.AWS_S3.S3_BUCKET + '/' + file.identifier,
+
+    }, {
+      expireTime : t.getTime() + 3000000;
+    });
+    console.log('Signed URL: ' + signedUrl);
+    q.resolve(signedUrl);
+  })
+  .catch(function (err) {
+    q.reject(err);
+  })
+  .done(function () {
+
+  }, function (err) {
+    q.reject(err);
+  });
+
+
+
+  return q.promise;
 };
 
 module.exports.cabinet =  CabinetObject;
