@@ -13,14 +13,14 @@
         "name": "IXIT - File Sharing and Hosting",
         "home": "dk33p",
         "AWS_S3" : {
-
-            "S3_BUCKET": "dkeep-bucket-dev",
+            "S3_BUCKET": "dkeep-bucket-development"
         },
         "AWS_CLOUDFRONT" :{
             "ID" : "APKAJVIG4YFNAIMHOWKA",
-            "CNAME": "files.i-x.it",
-            "PROTOCOL": "http"
-        },
+            "CNAME": "doxd6hib8ju6c.cloudfront.net",
+            "PROTOCOL": "http",
+            "KEYPAIRID" : "APKAJVIG4YFNAIMHOWKA"
+        }
     },
     "redis": {
       "port": 6379,

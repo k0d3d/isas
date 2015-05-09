@@ -8,7 +8,7 @@ module.exports.routes = function(app){
 
   //Request the home folderId
   app.get('/users/:userId/home', function(req,res, next){
-    cabinet.findUserHome(req.param('userId'),
+    cabinet.findUserHome(req.params('userId'),
       function(r){
         if(util.isError(r)){
           next(r);
@@ -22,7 +22,7 @@ module.exports.routes = function(app){
   app.get('/users/:userId/files', function(req,res, next){
     var page = req.body.page || 0;
     var limit = req.body.limit || 10;
-    cabinet.findUserFiles(req.param('userId'), {page: page, limit: limit},
+    cabinet.findUserFiles(req.params.userId, {page: page, limit: limit},
       function(r){
         if(util.isError(r)){
           next(r);
@@ -36,7 +36,7 @@ module.exports.routes = function(app){
   app.get('/users/:userId/queue', function(req, res, next){
     var page = req.body.page || 0;
     var limit = req.body.limit || 10;
-    cabinet.findUserQueue(req.param('userId'), {page: page, limit: limit},
+    cabinet.findUserQueue(req.params.userId, {page: page, limit: limit},
       function(r){
         if(util.isError(r)){
           next(r);
@@ -55,6 +55,19 @@ module.exports.routes = function(app){
       }else{
         res.status(200).json(r);
       }
+    });
+  });
+
+  //Request a signed uri from aws cloudfton for a file to be served / downloaded
+  app.get('/users/media/:mediaId/uri', function(req, res, next){
+    var mediaId = req.params.mediaId;
+    cabinet.getSignedURI('', mediaId)
+    .then(function(r){
+
+        res.status(200).json(r);
+
+    }, function (err) {
+      next(err);
     });
   });
 

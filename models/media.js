@@ -1,7 +1,7 @@
 var Media = require('./media/media.js').Media,
     Folder = require('./media/media.js').Folder,
     EventRegister = require('../lib/event_register').register,
-    _ = require("underscore"),
+    _ = require("lodash"),
     config = require('config'),
     errors = require('../lib/errors.js'),
     Q = require('q'),
@@ -10,6 +10,7 @@ var Media = require('./media/media.js').Media,
     path = require('path'),
     util = require('util'),
     url = require('url'),
+    moment = require('moment'),
     CF = require('aws-cloudfront-sign'),
     Fm = require('../lib/file-manager.js');
 
@@ -322,10 +323,14 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
     .lean()
     .exec(function(err, i){
       if(err){
-        cb(err);
-        return q.reject(err)
+        if (_.isFunction (cb)) {
+          cb(err);
+        }
+        return q.reject(err);
       }else{
-        cb(i);
+        if (_.isFunction (cb)) {
+          cb(i);
+        }
         return q.resolve(i);
       }
     });
@@ -518,20 +523,26 @@ CabinetObject.prototype.getSignedURI = function getSignedURI (user, mediaId) {
 
   //get
   var q = Q.defer(), self = this;
-  var t = new Date();
   self.getFile(mediaId)
   .then(function (file) {
-    var options = {keypairId: 'APKAJM2FEVTI7BNPCY4A', privateKeyPath: '/foo/bar'};
-    // var signedUrl = CF.getSignedUrl(config.app.AWS_CLOUDFRONT.METHOD + '://' + config.app.AWS_CLOUDFRONT.CNAME + '/' +  path/to/s3/object', options);
+    // console.log(url.format({
+    //   protocol : config.app.AWS_CLOUDFRONT.PROTOCOL,
+    //   hostname : config.app.AWS_CLOUDFRONT.CNAME,
+    //   pathname : config.app.AWS_S3.S3_BUCKET + '/' + file.identifier,
+
+    // }));
     var signedUrl = CF.getSignedUrl(url.format({
       protocol : config.app.AWS_CLOUDFRONT.PROTOCOL,
       hostname : config.app.AWS_CLOUDFRONT.CNAME,
-      pathname : config.app.AWS_S3.S3_BUCKET + '/' + file.identifier,
+      pathname : file.identifier,
 
-    }, {
-      expireTime : t.getTime() + 3000000;
+    }), {
+      expireTime : new Date().getTime() + 300000,
+      keypairId: config.app.AWS_CLOUDFRONT.KEYPAIRID,
+      privateKeyString: process.env.CF_PRIVATE_KEY
     });
-    console.log('Signed URL: ' + signedUrl);
+    // console.log('Signed URL: ' + signedUrl);
+    // q.resolve('https://s3-eu-west-1.amazonaws.com/dkeep-bucket/-553cefe0d06404d138a95bf9-150478-151522-NovaShellzip-150478');
     q.resolve(signedUrl);
   })
   .catch(function (err) {

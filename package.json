@@ -48,6 +48,7 @@
     "mean-logger": "latest",
     "method-override": "latest",
     "mime": "latest",
+    "moment": "^2.10.2",
     "mongoosastic": "latest",
     "mongoose": "latest",
     "morgan": "latest",

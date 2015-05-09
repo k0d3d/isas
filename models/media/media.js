@@ -86,7 +86,6 @@ Media Statics
 
 MediaSchema.statics = {
 	userFiles : function(userId, options, callback){
-
 		var q = this.find({
 			'owner': userId,
 			$where: function(){
