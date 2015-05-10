@@ -17,7 +17,7 @@
         },
         "AWS_CLOUDFRONT" :{
             "ID" : "APKAJVIG4YFNAIMHOWKA",
-            "CNAME": "doxd6hib8ju6c.cloudfront.net",
+            "CNAME": "files.i-x.it",
             "PROTOCOL": "http",
             "KEYPAIRID" : "APKAJVIG4YFNAIMHOWKA"
         }

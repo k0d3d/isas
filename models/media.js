@@ -223,10 +223,17 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
     // console.log(obj);
     //var media = new Media();
     //Moves a file into the trash folder
-    Media.update({"mediaNumber": obj.fileId},
+    Media.update({$or : [
+      {
+        'mediaNumber': obj.fileId
+      },
+      {
+        '_id' : obj.fileId
+      }
+    ]},
     {
       $set: {
-        "visible": 2
+        'visible': 2
       }
     }, function(err){
       if(util.isError(err)){
@@ -518,11 +525,14 @@ CabinetObject.prototype.deleteFolderRecord = function deleteFolderRecord (obj, c
 };
 
 
-CabinetObject.prototype.getSignedURI = function getSignedURI (user, mediaId) {
+CabinetObject.prototype.getSignedURI = function getSignedURI (user, mediaId, expiry) {
   //check if user is authd to view file
 
   //get
   var q = Q.defer(), self = this;
+
+  expiry = expiry || new Date().getTime() + 300000;
+
   self.getFile(mediaId)
   .then(function (file) {
     // console.log(url.format({
@@ -537,7 +547,7 @@ CabinetObject.prototype.getSignedURI = function getSignedURI (user, mediaId) {
       pathname : file.identifier,
 
     }), {
-      expireTime : new Date().getTime() + 300000,
+      expireTime : expiry,
       keypairId: config.app.AWS_CLOUDFRONT.KEYPAIRID,
       privateKeyString: process.env.CF_PRIVATE_KEY
     });

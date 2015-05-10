@@ -151,7 +151,7 @@ module.exports.routes = function(app){
       userId: req.params.userId,
       identifier: req.body.identifier
     };
-    cabinet.deleteeteFileRecord(obj,  function(r){
+    cabinet.deleteFileRecord(obj,  function(r){
       if(util.isError(r)){
         next(r);
       }else{
@@ -166,7 +166,7 @@ module.exports.routes = function(app){
       folder_id: hashr.unhashOid(req.params.folderId),
       owner: req.params.userId
     };
-    cabinet.deleteeteFolderRecord(obj,  function(r){
+    cabinet.deleteFolderRecord(obj,  function(r){
       if(util.isError(r)){
         next(r);
       }else{

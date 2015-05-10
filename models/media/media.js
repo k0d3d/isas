@@ -133,9 +133,9 @@ MediaSchema.statics = {
 	one : function(media_id, callback){
 		var q;
 		if(/^[0-9a-fA-F]{24}$/.test(media_id)){
-			q = {"_id": media_id};
+			q = {'_id': media_id};
 		}else{
-			q = {"mediaNumber": media_id};
+			q = {'mediaNumber': media_id};
 		}
 		this.findOne(q, function(err, i){
 			if(err){
