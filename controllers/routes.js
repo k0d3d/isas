@@ -1,7 +1,7 @@
 /**
  * Module dependcies
  */
-var redis = require('redis'),
+var
     jwt = require('jsonwebtoken');
 
 
@@ -18,8 +18,7 @@ module.exports = function (app, redis_client, jobQueue, s3client) {
   cabinet.routes(app, redis_client, jobQueue, s3client);
 
 
-  app.post('/request-token', function (req, res, next) {
-    console.log(req.body);
+  app.post('/request-token', function (req, res) {
     //hash object using clientid
     var token = jwt.sign(req.body, req.body.clientId, {expiresInMinutes: 60});
     //store in redis
