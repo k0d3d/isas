@@ -35,7 +35,7 @@ function V4ult(redis_client, jobQueue, s3client){
     self._sum = fields.sum;
     self._filetype = mime.lookup(fields.flowFilename);
     self._owner = fields['x-Authr'] || 'anonymous';
-    self._folder = fields.folder ? hashr.unhashOid(fields.folder) : null;
+    self._folder = fields.folder;
 
   };
   this.vault_fileId = function () {
@@ -208,7 +208,6 @@ var vFunc = {
   moveFile: function moveFile (self, files) {
     var q = Q.defer();
     var fm = new Fm('moveFile');
-    console.log(files[self.fileParameterName].path);
     // Save the chunk (TODO: OVERWRITE)
     fs.rename(
       files[self.fileParameterName].path,

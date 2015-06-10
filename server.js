@@ -94,6 +94,10 @@ function afterResourceFilesLoad(redis_client) {
       next();
     });
 
+    // load uploader middleware
+    var fm = new Filemanager();
+    app.use(multer({ dest: fm.APPCHUNKDIR}));
+
     // signed cookies
     app.use(cookieParser(config.express.secret));
 
@@ -107,10 +111,6 @@ function afterResourceFilesLoad(redis_client) {
 
     //load download middleware
     app.use(downloader());
-
-    // load uploader middleware
-    var fm = new Filemanager();
-    app.use(multer({ dest: fm.APPCHUNKDIR}));
 
     // setup session management
     console.log('setting up session management, please wait...');

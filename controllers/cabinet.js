@@ -8,7 +8,7 @@ module.exports.routes = function(app){
 
   //Request the home folderId
   app.get('/users/:userId/home', function(req,res, next){
-    cabinet.findUserHome(req.params('userId'),
+    cabinet.findUserHome(req.params.userId,
       function(r){
         if(util.isError(r)){
           next(r);

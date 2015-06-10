@@ -1,7 +1,7 @@
 var Media = require('./media/media.js').Media,
     Folder = require('./media/media.js').Folder,
     EventRegister = require('../lib/event_register').register,
-    _ = require("lodash"),
+    _ = require('lodash'),
     config = require('config'),
     errors = require('../lib/errors.js'),
     Q = require('q'),

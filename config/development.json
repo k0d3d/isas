@@ -9,6 +9,11 @@
     "express":{
         "secret": "fwsefwU&&@n*#UNB!@g7509"
     },
+    "api_server": {
+        "protocol": "http",
+        "hostname": "localhost",
+        "port" : 3000
+    },
     "app": {
         "name": "IXIT - File Sharing and Hosting",
         "home": "dk33p",

@@ -1,14 +1,15 @@
 var V4ult = require('../models/vault.js'),
     util = require('util'),
     _ = require('lodash'),
-    cors = require('../lib/middlewares/cors');
+    cors = require('../lib/middlewares/cors'),
+    userAuthd = require('../lib/middlewares/authorization');
 
 
 module.exports.routes = function(app, redis_client, jobQueue, s3client){
   var v4ult = new V4ult(redis_client, jobQueue, s3client);
 
   // Handle uploads through flow.js
-  app.post('/upload', cors, function(req, res, next){
+  app.post('/upload', cors(), userAuthd(redis_client), function(req, res, next){
     // return res.status(400).json(400);
     var fields = _.extend({}, req.body, req.headers, req.fields);
 
@@ -27,7 +28,7 @@ module.exports.routes = function(app, redis_client, jobQueue, s3client){
   // Handle cross-domain requests
   // NOTE: Uncomment this funciton to enable cross-domain request.
 
-  app.options('/upload', cors, function(req, res){
+  app.options('/upload', cors(), userAuthd(redis_client), function(req, res){
     // res.header('Access-Control-Allow-Origin', '*');
     // res.header('Access-Control-Allow-Headers', 'X-Requested-With');
     res.send(true, {
@@ -37,7 +38,7 @@ module.exports.routes = function(app, redis_client, jobQueue, s3client){
 
 
   // Handle status checks on chunks through flow.js
-  app.get('/upload',cors, function(req, res){
+  app.get('/upload',cors(), userAuthd(redis_client), function(req, res){
 
     v4ult.getHandler(req.query, function(r){
       if(util.isError(r)){
