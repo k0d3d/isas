@@ -25,6 +25,7 @@
     "aws-sdk": "^2.1.25",
     "bcrypt": "latest",
     "body-parser": "latest",
+    "busboy": "^0.2.9",
     "colors": "latest",
     "common-errors": "latest",
     "compression": "latest",

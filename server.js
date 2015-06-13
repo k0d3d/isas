@@ -8,7 +8,6 @@ console.log('ixit document service version: ' + pjson.version);
 
 // REQUIRE SECTION
 var express = require('express'),
-    router = express.Router(),
     config = require('config'),
     app = express(),
     // passport = require('passport'),
@@ -24,12 +23,11 @@ var express = require('express'),
     restler = require('restler'),
     color = require('colors'),
     downloader = require('./lib/downloader.js'),
-    multer = require('multer'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
     helpers = require('view-helpers'),
     url = require('url'),
-    Filemanager = require('./lib/file-manager.js'),
+    uploader = require('./lib/uploader'),
     kue = require('kue'),
     s3 = require('s3'),
     syncIndex = require('./models/media/media.js').syncIndex;
@@ -95,8 +93,8 @@ function afterResourceFilesLoad(redis_client) {
     });
 
     // load uploader middleware
-    var fm = new Filemanager();
-    app.use(multer({ dest: fm.APPCHUNKDIR}));
+    // var fm = new Filemanager();
+    app.use(uploader());
 
     // signed cookies
     app.use(cookieParser(config.express.secret));

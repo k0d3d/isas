@@ -1,5 +1,6 @@
 var V4ult = require('../models/vault.js'),
     util = require('util'),
+    Filemanager = require('../lib/file-manager'),
     _ = require('lodash'),
     cors = require('../lib/middlewares/cors'),
     userAuthd = require('../lib/middlewares/authorization');
@@ -11,10 +12,10 @@ module.exports.routes = function(app, redis_client, jobQueue, s3client){
   // Handle uploads through flow.js
   app.post('/upload', cors(), userAuthd(redis_client), function(req, res, next){
     // return res.status(400).json(400);
-    var fields = _.extend({}, req.body, req.headers, req.fields);
+
 
     //CORS Headers
-    v4ult.postHandler(fields, req.files)
+    v4ult.postHandler(req.fields)
     .then(function(status){
       if (util.isError(status)) {
         return res.status(400).json(status);
@@ -39,13 +40,13 @@ module.exports.routes = function(app, redis_client, jobQueue, s3client){
 
   // Handle status checks on chunks through flow.js
   app.get('/upload',cors(), userAuthd(redis_client), function(req, res){
-
-    v4ult.getHandler(req.query, function(r){
-      if(util.isError(r)){
-        res.status(404).json(r);
-      }else{
+    var fm = new Filemanager(req);
+    var fields = _.extend({}, req.query, req.headers);
+    v4ult.getHandler(fm.setFields(fields))
+    .then(function(r){
         res.status(200).json(r);
-      }
+    }, function (err) {
+        res.status(404).json(err);
     });
   });
 

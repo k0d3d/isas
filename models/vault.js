@@ -3,14 +3,12 @@ var Utility = require('../lib/utility.js'),
     Q = require('q'),
     fs = require('fs'),
     path = require('path'),
-    util = require('util'),
+    debug = require('debug')('dkeep'),
     // Stream = require('stream').Stream,
     Media = require('./media/media').Media,
     syncIndex = require('./media/media').syncIndex,
     Cabinet = require('./media').cabinet,
     config = require('config'),
-    mime = require('mime'),
-    hashr = require('../lib/hash.js'),
     errors = require('../lib/errors.js'),
     _ = require('lodash');
 
@@ -23,25 +21,6 @@ function V4ult(redis_client, jobQueue, s3client){
   this.fileParameterName = 'file';
   this.uuid = '';
   this.chunkList = [];
-  this.setFields =  function (fields) {
-    var self = this, u = new Utility();
-    self._chunkNumber = fields.flowChunkNumber;
-    self._chunkSize = fields.flowChunkSize;
-    self._totalSize = fields.flowTotalSize;
-    self._chunkId = u.cleanIdentifier(fields.flowIdentifier);
-    self._filename = fields.flowFilename;
-    // self._original_filename = fields.flowIdentifier;
-    self._totalChunks = fields.flowTotalChunks;
-    self._sum = fields.sum;
-    self._filetype = mime.lookup(fields.flowFilename);
-    self._owner = fields['x-Authr'] || 'anonymous';
-    self._folder = fields.folder;
-
-  };
-  this.vault_fileId = function () {
-    return [this._folder, this._owner, this._chunkId, this._totalSize].join('-');
-  };
-
 }
 
 /* Common methods for file upload operation*/
@@ -52,7 +31,7 @@ var vFunc = {
    * @return {Promise}       Promise
    */
   saveChunkToDB: function saveChunkToDB (fileObj) {
-    console.log('saveChunkToDB');
+    debug('saveChunkToDB');
     var d = Q.defer();
     var utility = new Utility();
 
@@ -72,7 +51,7 @@ var vFunc = {
               d.resolve(fileObj);
               foundDoc.index(function(err){
                 if(err){
-                  console.log(err);
+                  debug(err);
                 }
               });
             }
@@ -105,7 +84,7 @@ var vFunc = {
    */
   checkFolder: function checkFolder (fileObj) {
     var q = Q.defer();
-    console.log('checkFolder');
+    debug('checkFolder');
 
     var cabinet = new Cabinet();
     if (!fileObj.folder) {
@@ -131,7 +110,7 @@ var vFunc = {
    * @return {[type]}         [description]
    */
   joinCompletedFileUpload: function joinCompletedFileUpload (fileObj) {
-    console.log('joinCompletedFileUpload');
+    debug('joinCompletedFileUpload');
     var q = Q.defer();
     var fm = new Fm();
 
@@ -156,7 +135,7 @@ var vFunc = {
     return q.promise;
   },
   saveChunkToRedis: function saveChunkToRedis (fileObj, redisClient) {
-    console.log('saveChunkToRedis');
+    debug('saveChunkToRedis');
     var q = Q.defer();
 
     redisClient.hmset(fileObj.identifier, _.pick(fileObj, ['progress', 'identifier', 'chunkCount']),
@@ -177,17 +156,17 @@ var vFunc = {
    * @return {[type]}         resolves to fileObj hash, rejects with
    */
   deleteUploadChunks: function deleteUploadChunks (fileObj) {
-    console.log('vfunc deleteUploadChunks');
+    debug('vfunc deleteUploadChunks');
     var q = Q.defer();
     var fm = new Fm();
     if(fileObj.progress === fileObj.chunkCount){
       fm.clean(fileObj, fileObj.owner)
       .then(function(f){
-        console.log(f === true ? 'Delete Completed': 'Error Deleting');
+        debug(f === true ? 'Delete Completed': 'Error Deleting');
         q.resolve(fileObj);
       }, function (err) {
-        console.log('Error Deleting');
-        console.log(err);
+        debug('Error Deleting');
+        debug(err);
         q.resolve(fileObj);
       });
     }else{
@@ -205,38 +184,40 @@ var vFunc = {
    * from an upload middleware eg formidable, and args.self the upload data sent in the request.
    * @return {[type]}      [description]
    */
-  moveFile: function moveFile (self, files) {
+  moveFile: function moveFile (self) {
     var q = Q.defer();
-    var fm = new Fm('moveFile');
+
+
+
     // Save the chunk (TODO: OVERWRITE)
-    fs.rename(
-      files[self.fileParameterName].path,
-      fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
-      function(err){
-        if (err) {
-          return q.reject(err);
-        }
-        var fileObj = {
-          progress: self._chunkNumber,
-          identifier: self.vault_fileId(),
-          filename: self._filename,
-          size: self._totalSize,
-          chunkCount: self._totalChunks,
-          sum : self._sum,
-          owner: self._owner,
-          type: self._filetype,
-          folder: self._folder,
-          chunkId: self._chunkId
-        };
-        if (self._chunkNumber === self._totalChunks) {
-          fileObj.completedDate =  Date.now();
-        }
-        q.resolve(fileObj);
-    });
+    // fs.rename(
+    //   files[self.fileParameterName].path,
+    //   fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
+    //   function(err){
+    //     if (err) {
+    //       return q.reject(err);
+    //     }
+    // });
+    var fileObj = {
+      progress: self._chunkNumber,
+      identifier: self.identifier,
+      filename: self._filename,
+      size: self._totalSize,
+      chunkCount: self._totalChunks,
+      sum : self._sum,
+      owner: self._owner,
+      type: self._filetype,
+      folder: self._folder,
+      chunkId: self._chunkId
+    };
+    if (self._chunkNumber === self._totalChunks) {
+      fileObj.completedDate =  Date.now();
+    }
+    q.resolve(fileObj);
     return q.promise;
   },
   sendToS3 : function sendToS3 (client, vault_fileId) {
-    console.log('sendTos3');
+    debug('sendTos3');
     var q = Q.defer();
     var fm = new Fm();
 
@@ -253,8 +234,8 @@ var vFunc = {
     var uploader = client.uploadFile(params);
 
     uploader.on('progress', function() {
-      console.log("progress", uploader.progressMd5Amount,
-                uploader.progressAmount, uploader.progressTotal);
+      debug("progress", uploader.progressMd5Amount,
+                Math.round(uploader.progressAmount / uploader.progressTotal * 100) + '%');
     });
 
     uploader.on('error', function(err) {
@@ -276,51 +257,27 @@ V4ult.prototype.constructor = V4ult;
 
 /**
  * _postHandler Handles all chunk post request and send response when complete
- * @param  {Object}   fields      [Request Body]
- * @param  {Object}   files      [Request Body]
+ * @param  {Object}   reqObject      [Request Body]
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
-V4ult.prototype.postHandler = function (fields, files){
-  var fm = new Fm();
+V4ult.prototype.postHandler = function (reqObject){
   var self = this;
   var q = Q.defer();
 
-  self.setFields(fields);
-
-  if(!files[self.fileParameterName] || !files[self.fileParameterName].size) {
-    q.reject(errors.nounce('UploadHasError'));
-    return q.promise;
-  }
-
-  var validation = fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), files[self.fileParameterName].size);
-
-  if(validation !== 'valid') {
-    q.reject(errors.nounce('UploadHasError'));
-    return q.promise;
-  }
-
   //should add chunk processing to job queue
-  var job = self.jobQueue.create('upload', {
-    _chunkNumber : self._chunkNumber,
-    _chunkSize : self._chunkSize,
-    _totalSize : self._totalSize,
-    _chunkId : self._chunkId,
-    _filename : self._filename,
-    _filetype : self._filetype,
-    _owner : self._owner
-  });
+  var job = self.jobQueue.create('upload', reqObject);
 
   job.on('complete', function (){
-      console.log('Job', job.id, ' has completed');
+      debug('Job', job.id, ' has completed');
   });
   job.on('failed', function (){
-      console.log('Job', job.id, ' has failed');
+      debug('Job', job.id, ' has failed');
   });
 
   job.save(function (err) {
     if (err) {
-      console.log(err.stack);
+      debug(err.stack);
       q.reject(errors.nounce('UploadHasError'));
     }
     q.resolve({jobId: job.id});
@@ -329,7 +286,7 @@ V4ult.prototype.postHandler = function (fields, files){
   self.jobQueue.process('upload', function (job, done){
     /* carry out all the job function here */
 
-    vFunc.moveFile(self, files)
+    vFunc.moveFile(job.data)
     .then(vFunc.checkFolder)
     .then(vFunc.joinCompletedFileUpload)
     .then(function (fileObj) {
@@ -343,7 +300,7 @@ V4ult.prototype.postHandler = function (fields, files){
       return self.s3uploader(fileObj);
     })
     .catch(function (err) {
-      console.log(err.stack);
+      debug(err.stack);
       done(err);
       q.reject(errors.nounce('UploadHasError'));
     })
@@ -363,6 +320,7 @@ V4ult.prototype.postHandler = function (fields, files){
 V4ult.prototype.s3uploader = function s3uploader (fileObj) {
   var self = this;
   var q = Q.defer();
+  var fm = new Fm();
   //if the file upload isnt complete,
   //no need to send to s3
   if (!fileObj.completedDate) {
@@ -370,24 +328,18 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
   } else {
 
     //should add chunk processing to job queue
-    var job = self.jobQueue.create('s3upload', {
-      _totalSize : self._totalSize,
-      _filename : self._filename,
-      _filetype : self._filetype,
-      _owner : self._owner,
-      _identifier: self.vault_fileId()
-    });
+    var job = self.jobQueue.create('s3upload', fileObj);
 
     job.on('complete', function (){
-        console.log('Upload Job', job.id, ' has completed');
+        debug('Upload Job', job.id, ' has completed');
     });
     job.on('failed', function (){
-        console.log('Upload Job', job.id, ' has failed');
+        debug('Upload Job', job.id, ' has failed');
     });
 
     job.save(function (err) {
       if (err) {
-        console.log(err.stack);
+        debug(err.stack);
         q.reject(errors.nounce('S3UploadHasError'));
       }
       q.resolve({jobId: job.id});
@@ -396,9 +348,9 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
     self.jobQueue.process('s3upload', function (job, done){
       /* carry out all the job function here */
 
-      vFunc.sendToS3(self.s3client, self.vault_fileId())
+      vFunc.sendToS3(self.s3client, job.data.identifier)
       .catch(function (err) {
-        console.log(err.stack);
+        debug(err.stack);
         done(err);
         q.reject(errors.nounce('S3UploadHasError'));
       })
@@ -424,29 +376,23 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
-V4ult.prototype.getHandler = function  (params, cb){
-  var fm = new Fm(), self = this;
-  // var chunkNumber = param('flowChunkNumber', 0);
-  // var chunkSize = param('flowChunkSize', 0);
-  // var totalSize = param('flowTotalSize', 0);
-  // var identifier = param('throne', '')+ '-' +param('flowIdentifier', '');
-  // var filename = param('flowFilename', '');
+V4ult.prototype.getHandler = function  (params){
+  var fm = new Fm(), q = Q.defer();
 
-  self.setFields(params);
-  // var owner = param('throne', '');
-
-  if(fm.validateRequest(self._chunkNumber, self._chunkSize, self._totalSize, self.vault_fileId(), self._filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilePath(self._chunkNumber, self.vault_fileId());
+  if(fm.validateRequest(params._chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params._filename) === 'valid') {
+    var chunkFilename = fm.getChunkFilePath(params._chunkNumber, fm.vault_fileId(params));
     fs.exists(chunkFilename, function(exists){
       if(exists){
-        cb({'chunkFilename': chunkFilename, 'filename': self._filename, 'identifier': self.chunkId});
+        return q.resolve({'chunkFilename': chunkFilename, 'filename': params._filename, 'identifier': params._chunkId});
       } else {
-        cb(errors.httpError(404));
+        return q.reject(errors.httpError(404));
       }
     });
   } else {
-    cb(errors.httpError(404));
+    return q.reject(errors.httpError(404));
   }
+
+  return q.promise;
 };
 
 
