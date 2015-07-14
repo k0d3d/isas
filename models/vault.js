@@ -36,7 +36,7 @@ var vFunc = {
     var utility = new Utility();
 
     //if its completed or just beginning
-    if ((fileObj.progress === fileObj.chunkCount) || fileObj.progress === 1) {
+    if ((fileObj.progress == fileObj.chunkCount) || fileObj.progress == 1) {
       var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
@@ -134,18 +134,68 @@ var vFunc = {
     }
     return q.promise;
   },
+  /**
+   * saves information / properties for an upload in-progress to redis for quick
+   * access. We always expect to return an object containing the 'mediaNumber'
+   * property of the upload in-progress. This property is available in the fileObj
+   * argument when an upload just starts and is completed. We need to retain that
+   * property in the redis hash. We achieve this by allowing the initial and final
+   * chunk upload to create / overwrite the redis hash. Every chunk upload in between
+   * will update the hash using _.extend.
+   * @param  {[type]} fileObj     [description]
+   * @param  {[type]} redisClient [description]
+   * @return {[type]}             [description]
+   */
   saveChunkToRedis: function saveChunkToRedis (fileObj, redisClient) {
     debug('saveChunkToRedis');
     var q = Q.defer();
 
-    redisClient.hmset(fileObj.identifier, _.pick(fileObj, ['progress', 'identifier', 'chunkCount']),
-      function (err){
-        if (err) {
-          return q.reject(err);
-        }
-        redisClient.expire(fileObj.identifier, 5 * 60);
-        q.resolve(fileObj);
+    if ((fileObj.progress == fileObj.chunkCount) || fileObj.progress == 1) {
+      redisClient.hmset(fileObj.identifier, _.pick(fileObj.fileDocument,
+        ['progress', 'identifier', 'chunkCount', 'mediaNumber']),
+        function (err){
+          if (err) {
+            return q.reject(err);
+          }
+          redisClient.expire(fileObj.identifier, 5 * 60 * 60);
+          q.resolve(fileObj);
       });
+    } else {
+      vFunc.getChunkFromRedis(fileObj.identifier, redisClient)
+      .then(function (fileDocument) {
+        var extendedFileHash = _.extend(fileDocument, _.pick(fileObj,
+        ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
+        redisClient.hmset(fileObj.identifier, extendedFileHash,
+          function (err){
+            if (err) {
+              return q.reject(err);
+            }
+            redisClient.expire(fileObj.identifier, 5 * 60 * 60);
+            q.resolve(fileObj);
+        });
+      }, function (err) {
+        q.reject(err);
+      });
+    }
+
+    return q.promise;
+  },
+  /**
+   * gets an upload in-progress information / properties from a redis
+   * server / instance.
+   * @param  {[type]} fileIdentifier [description]
+   * @return {[type]}                [description]
+   */
+  getChunkFromRedis: function getChunkFromRedis (fileIdentifier, redisClient) {
+    debug('getChunkFromRedis');
+    var q = Q.defer();
+
+    redisClient.hgetall(fileIdentifier, function (err, data) {
+      if (err) {
+        return q.reject(err);
+      }
+      q.resolve(data);
+    });
 
     return q.promise;
   },
@@ -234,7 +284,7 @@ var vFunc = {
     var uploader = client.uploadFile(params);
 
     uploader.on('progress', function() {
-      debug("progress", uploader.progressMd5Amount,
+      debug('progress',
                 Math.round(uploader.progressAmount / uploader.progressTotal * 100) + '%');
     });
 
@@ -280,7 +330,12 @@ V4ult.prototype.postHandler = function (reqObject){
       debug(err.stack);
       q.reject(errors.nounce('UploadHasError'));
     }
-    q.resolve({jobId: job.id});
+    vFunc.getChunkFromRedis(reqObject.identifier, self.redisClient)
+    .then(function (fileData) {
+      q.resolve(fileData);
+    }, function(err) {
+      q.reject(err);
+    });
   });
 
   self.jobQueue.process('upload', function (job, done){
@@ -290,10 +345,10 @@ V4ult.prototype.postHandler = function (reqObject){
     .then(vFunc.checkFolder)
     .then(vFunc.joinCompletedFileUpload)
     .then(function (fileObj) {
-      return vFunc.saveChunkToRedis(fileObj, self.redisClient);
+      return vFunc.saveChunkToDB(fileObj);
     })
     .then(function (fileObj) {
-      return vFunc.saveChunkToDB(fileObj);
+      return vFunc.saveChunkToRedis(fileObj, self.redisClient);
     })
     .then(vFunc.deleteUploadChunks)
     .then(function (fileObj) {
@@ -342,7 +397,7 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
         debug(err.stack);
         q.reject(errors.nounce('S3UploadHasError'));
       }
-      q.resolve({jobId: job.id});
+      q.resolve(fileObj);
     });
 
     self.jobQueue.process('s3upload', function (job, done){
