@@ -30,6 +30,7 @@ var express = require('express'),
     uploader = require('./lib/uploader'),
     kue = require('kue'),
     s3 = require('s3'),
+    useragent = require('express-useragent'),
     syncIndex = require('./models/media/media.js').syncIndex;
 var MongoStore = require('connect-mongo')(session);
 
@@ -98,6 +99,8 @@ function afterResourceFilesLoad(redis_client) {
 
     // signed cookies
     app.use(cookieParser(config.express.secret));
+
+    app.use(useragent.express());
 
     app.use(bodyParser.urlencoded({
       extended: true

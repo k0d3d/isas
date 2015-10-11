@@ -18,13 +18,13 @@
         "name": "IXIT - File Sharing and Hosting",
         "home": "dk33p",
         "AWS_S3" : {
-            "S3_BUCKET": "dkeep-bucket-development"
+            "S3_BUCKET": "ixit-dkeep-bucket-development"
         },
         "AWS_CLOUDFRONT" :{
-            "ID" : "APKAJVIG4YFNAIMHOWKA",
-            "CNAME": "files.i-x.it",
+            "ID" : "APKAJTEFGCO2LEJLL65A",
+            "CNAME": "djhpbik46zdw1.cloudfront.net",
             "PROTOCOL": "http",
-            "KEYPAIRID" : "APKAJVIG4YFNAIMHOWKA"
+            "KEYPAIRID" : "APKAJTEFGCO2LEJLL65A"
         }
     },
     "redis": {

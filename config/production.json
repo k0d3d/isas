@@ -28,13 +28,21 @@
         "server": "ec2-54-191-53-79.us-west-2.compute.amazonaws.com",
         "AWS_S3" : {
 
-            "S3_BUCKET": "dkeep-bucket-production"
+            "S3_BUCKET": "ixit-dkeep-bucket-production"
         },
         "AWS_CLOUDFRONT" :{
-            "ID" : "APKAJVIG4YFNAIMHOWKA",
-            "CNAME": "files.i-x.it",
+            "ID" : "APKAJTEFGCO2LEJLL65A",
+            "CNAME": "djhpbik46zdw1.cloudfront.net",
             "PROTOCOL": "http",
-            "KEYPAIRID" : "APKAJVIG4YFNAIMHOWKA"
+            "KEYPAIRID" : "APKAJTEFGCO2LEJLL65A"
         }
+    },
+    "redis": {
+      "port": 15169,
+      "host": "pub-redis-15169.eu-west-1-2.2.ec2.garantiadata.com"
+    },
+    "es" : {
+        "url": "https://paas:333e1f4aea269a14360e1396d3bde7f2@balin-eu-west-1.searchly.com",
+        "port": 80
     }
 }

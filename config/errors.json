@@ -50,11 +50,25 @@
     "code": 607
   },
   {
+    "name": "ClientIdError",
+    "defaultMessage": "This action is not allowed. We can not understand your request.",
+    "defaultExplanation": "An internal server error occurred",
+    "defaultResponse": "Error has been logged and Admin notified",
+    "code": 608
+  },
+  {
     "name": "S3UploadHasError",
     "defaultMessage": "The upload operation failed with errors.",
     "defaultExplanation": "An error occured during the AWS S3 file upload.",
     "defaultResponse": "Error has been logged and Admin notified",
-    "code": 605
+    "code": 609
+  },
+  {
+    "name": "CriticalServerError",
+    "defaultMessage": "iXit could not complete this request because it had a major internal error.",
+    "defaultExplanation": "Rarely things go wrong here. We are probably aware of this and will have it fixed as soon as possible.",
+    "defaultResponse": "Error has been logged and Admin notified",
+    "code": 610
   }
 
 ]

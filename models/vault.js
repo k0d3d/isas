@@ -41,6 +41,13 @@ var vFunc = {
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
         if(!foundDoc){
+          //remove "undefined" values
+          if (fileObj.folder === undefined || fileObj.folder === 'undefined') {
+            delete fileObj.folder;
+          }
+          if (fileObj.owner === undefined || fileObj.owner === 'undefined') {
+            delete fileObj.owner;
+          }
           var media = new Media(fileObj);
           media.mediaNumber = ''+ utility.mediaNumber();
           media.save(function(err, foundDoc){
@@ -209,7 +216,7 @@ var vFunc = {
     debug('vfunc deleteUploadChunks');
     var q = Q.defer();
     var fm = new Fm();
-    if(fileObj.progress === fileObj.chunkCount){
+    if(parseInt(fileObj.progress) === parseInt(fileObj.chunkCount)){
       fm.clean(fileObj, fileObj.owner)
       .then(function(f){
         debug(f === true ? 'Delete Completed': 'Error Deleting');
@@ -303,15 +310,49 @@ var vFunc = {
 
 
 V4ult.prototype.constructor = V4ult;
-
-
 /**
- * _postHandler Handles all chunk post request and send response when complete
+ * postMultipleChunkHandler Handles multiple chunk post request
+ * and send response when complete.
  * @param  {Object}   reqObject      [Request Body]
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
-V4ult.prototype.postHandler = function (reqObject){
+V4ult.prototype.postOneChunkHandler = function postOneChunkHandler (reqObject) {
+  var q = Q.defer(), self = this;
+
+  vFunc.moveFile(reqObject)
+  .then(vFunc.checkFolder)
+  .then(vFunc.joinCompletedFileUpload)
+  .then(function (fileObj) {
+    return vFunc.saveChunkToDB(fileObj);
+  })
+  .then(function (fileObj) {
+    return vFunc.saveChunkToRedis(fileObj, self.redisClient);
+  })
+  .then(vFunc.deleteUploadChunks)
+  .then(function (fileObj) {
+    q.resolve(_.pick(fileObj.fileDocument.toObject(),
+        ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
+    // return self.s3uploader(fileObj);
+  }, function (err) {
+    q.reject(err);
+  })
+  .catch(function (err) {
+    debug(err.stack);
+    q.reject(errors.nounce('UploadHasError'));
+  });
+
+
+  return q.promise;
+};
+/**
+ * postMultipleChunkHandler Handles multiple chunk post request
+ * and send response when complete.
+ * @param  {Object}   reqObject      [Request Body]
+ * @param  {Function} callback [description]
+ * @return {[type]}            [description]
+ */
+V4ult.prototype.postMultipleChunkHandler = function (reqObject){
   var self = this;
   var q = Q.defer();
 
@@ -351,9 +392,9 @@ V4ult.prototype.postHandler = function (reqObject){
       return vFunc.saveChunkToRedis(fileObj, self.redisClient);
     })
     .then(vFunc.deleteUploadChunks)
-    .then(function (fileObj) {
-      return self.s3uploader(fileObj);
-    })
+    // .then(function (fileObj) {
+    //   return self.s3uploader(fileObj);
+    // })
     .catch(function (err) {
       debug(err.stack);
       done(err);

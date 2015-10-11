@@ -370,7 +370,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
  CabinetObject.prototype.serveFile = function(mediaId, cb){
 
   this.getFile(mediaId, function(fileNfo){
-    var filePath = path.join(process.env.APP_HOME, config.app.home, 'v4nish', fileNfo.identifier);
+    var filePath = path.join(process.cwd(), 'storage',fileNfo.identifier);
     fs.exists(filePath, function(itdz){
       if(itdz){
         cb(filePath, fileNfo.filename);

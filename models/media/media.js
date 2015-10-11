@@ -4,7 +4,6 @@
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongoosastic = require('mongoosastic'),
-    config = require('config'),
     hashr = require('../../lib/hash.js');
 
 var MediaSchema = new Schema({
