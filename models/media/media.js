@@ -149,7 +149,7 @@ MediaSchema.statics = {
 /**
  * plugin
  */
-var ESURL = require('url').parse(process.env.ES_SSL_URL || process.env.ES_URL);
+var ESURL = require('url').parse(process.env.ELASTICSEARCH_SSL_URL || process.env.ELASTICSEARCH_URL);
 
 MediaSchema.plugin(mongoosastic, {
 	host: ESURL.hostname,

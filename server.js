@@ -16,7 +16,6 @@ var express = require('express'),
     cookieParser = require('cookie-parser'),
     methodOverride = require('method-override'),
     bodyParser = require('body-parser'),
-    flash = require('connect-flash'),
     session = require('express-session'),
     // favicon = require('serve-favicon'),
     compress = require('compression'),
@@ -32,7 +31,8 @@ var express = require('express'),
     s3 = require('s3'),
     useragent = require('express-useragent'),
     syncIndex = require('./models/media/media.js').syncIndex;
-var MongoStore = require('connect-mongo')(session);
+var RedisStore = require('connect-redis')(session);
+
 
 
 // set version
@@ -45,15 +45,6 @@ var port = process.env.PORT || 3001;
 function afterResourceFilesLoad(redis_client) {
 
     console.log('configuring application, please wait...');
-
-
-    // console.log('Loading ' + 'passport'.inverse + ' config...');
-    // try {
-    //   require('./lib/passport.js')(passport);
-    // } catch(e) {
-    //   console.log(e);
-    // }
-    //
 
     app.set('showStackError', true);
 
@@ -114,31 +105,27 @@ function afterResourceFilesLoad(redis_client) {
     app.use(downloader());
 
     // setup session management
-    console.log('setting up session management, please wait...');
-    app.use(session({
-        resave: true,
-        saveUninitialized: true,
-        secret: config.express.secret,
-        store: new MongoStore({
-            db: config.db.database,
-            host: config.db.server,
-            port: config.db.port,
-            autoReconnect: true,
-            username: config.db.user,
-            password: config.db.password,
-            collection: "mongoStoreSessions"
-        })
-    }));
+    // console.log('setting up session management, please wait...');
+    // app.use(session({
+    //     resave: true,
+    //     saveUninitialized: true,
+    //     secret: config.express.secret,
+    //     store: new MongoStore({
+    //         db: config.db.database,
+    //         host: config.db.server,
+    //         port: config.db.port,
+    //         autoReconnect: true,
+    //         username: config.db.user,
+    //         password: config.db.password,
+    //         collection: "mongoStoreSessions"
+    //     })
+    // }));
 
     //Initialize Passport
     // app.use(passport.initialize());
 
     // //enable passport sessions
     // app.use(passport.session());
-
-
-    // connect flash for flash messages - should be declared after sessions
-    app.use(flash());
 
     // should be declared after session and flash
     app.use(helpers(pjson.name));
@@ -205,6 +192,20 @@ function afterResourceFilesLoad(redis_client) {
         },
       });
 
+    // setup session management
+    //debug('setting up session management, please wait...');
+
+    app.use(session({
+        secret: config.express.secret,
+        saveUninitialized: true,
+        resave: true,
+        store: new RedisStore({
+            autoReconnect: true,
+            port: REDIS.port,
+            host: REDIS.hostname,
+            pass: con_opts.auth
+        })
+    }));
 
     // our routes
     console.log('setting up routes, please wait...');
@@ -292,18 +293,18 @@ redis_client.on('error', function (err) {
 
 /*ElasticSearch Connection*/
 console.log("Checking connection to ElasticSearch Server...");
-var esurl = process.env.ES_SSL_URL || process.env.ES_URL;
+var esurl = process.env.ELASTICSEARCH_SSL_URL || process.env.ELASTICSEARCH_URL;
 restler.get(esurl)
 .on('success', function (data) {
   if (data.status === 200) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('ES running on ' + process.env.ES_URL);
+      console.log('ES running on ' + process.env.ELASTICSEARCH_URL);
     }
   }
 })
 .on('error', function (data) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log('Error Connecting to ES on ' + process.env.ES_URL);
+    console.log('Error Connecting to ES on ' + process.env.ELASTICSEARCH_URL);
   } else {
     console.log('Error Connecting to ES');
   }

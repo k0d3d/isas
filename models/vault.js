@@ -40,14 +40,14 @@ var vFunc = {
       var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
+        //remove "undefined" values
+        if (fileObj.folder === undefined || fileObj.folder === 'undefined') {
+          delete fileObj.folder;
+        }
+        if (fileObj.owner === undefined || fileObj.owner === 'undefined') {
+          delete fileObj.owner;
+        }
         if(!foundDoc){
-          //remove "undefined" values
-          if (fileObj.folder === undefined || fileObj.folder === 'undefined') {
-            delete fileObj.folder;
-          }
-          if (fileObj.owner === undefined || fileObj.owner === 'undefined') {
-            delete fileObj.owner;
-          }
           var media = new Media(fileObj);
           media.mediaNumber = ''+ utility.mediaNumber();
           media.save(function(err, foundDoc){
@@ -94,7 +94,7 @@ var vFunc = {
     debug('checkFolder');
 
     var cabinet = new Cabinet();
-    if (!fileObj.folder) {
+    if (!fileObj.folder || fileObj.folder !== 'undefined') {
       cabinet.createFolder({
         name: fileObj.name || 'Home',
         owner: fileObj.owner,
@@ -345,6 +345,7 @@ V4ult.prototype.postOneChunkHandler = function postOneChunkHandler (reqObject) {
 
   return q.promise;
 };
+
 /**
  * postMultipleChunkHandler Handles multiple chunk post request
  * and send response when complete.

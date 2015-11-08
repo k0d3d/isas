@@ -7,7 +7,20 @@
         "pass": ""
     },
     "express":{
-        "secret": "fwsefwU&&@n*#UNB!@g7509"
+        "secret": "fwsefwU&&@n*#UNB!@g7509",
+        "cors" : {
+          "options" : {
+            "origin": "http://ixit.vm",
+            "methods": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "credentials": true,
+            "maxAge": 3600
+          }
+        }
     },
     "api_server": {
         "protocol": "http",
