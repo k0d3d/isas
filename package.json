@@ -75,6 +75,7 @@
     "restler": "latest",
     "s3": "^4.4.0",
     "underscore": "latest",
+    "aws-cloudfront-sign": "latest",
     "view-helpers": "latest"
   },
   "devDependencies": {
