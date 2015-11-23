@@ -20,7 +20,6 @@ var express = require('express'),
     // favicon = require('serve-favicon'),
     compress = require('compression'),
     restler = require('restler'),
-    color = require('colors'),
     downloader = require('./lib/downloader.js'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
@@ -89,7 +88,7 @@ function afterResourceFilesLoad(redis_client) {
     app.use(uploader());
 
     // signed cookies
-    app.use(cookieParser(config.express.secret));
+    app.use(cookieParser(process.env.APP_SECRET));
 
     app.use(useragent.express());
 
@@ -109,7 +108,7 @@ function afterResourceFilesLoad(redis_client) {
     // app.use(session({
     //     resave: true,
     //     saveUninitialized: true,
-    //     secret: config.express.secret,
+    //     secret: process.env.APP_SECRET,
     //     store: new MongoStore({
     //         db: config.db.database,
     //         host: config.db.server,
@@ -196,7 +195,7 @@ function afterResourceFilesLoad(redis_client) {
     //debug('setting up session management, please wait...');
 
     app.use(session({
-        secret: config.express.secret,
+        secret: process.env.APP_SECRET,
         saveUninitialized: true,
         resave: true,
         store: new RedisStore({
