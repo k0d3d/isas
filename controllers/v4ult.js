@@ -2,13 +2,27 @@ var V4ult = require('../models/vault.js'),
     appConfig = require('config').express,
     util = require('util'),
     Filemanager = require('../lib/file-manager'),
+    request = require('request'),
     _ = require('lodash'),
+    fs = require('fs'),
+    path = require('path'),
     cors = require('cors'),
     userAuthd = require('../lib/middlewares/authorization');
 
 
 module.exports.routes = function(app, redis_client, jobQueue, s3client){
   var v4ult = new V4ult(redis_client, jobQueue, s3client);
+
+  //endpoint
+  //
+  app.post('/upload/automate', cors(appConfig.cors.options), function (req, res, next) {
+    var filename = 'ixitbot-' + Date.now() + '-Image.jpg';
+    console.log(Filemanager);
+    var pathToWrite = fs.createWriteStream(path.join(process.cwd(), 'storage', filename ));
+    console.log(req.body);
+    request(req.body.thumbnail).pipe(pathToWrite);
+    res.json({"saved": true});
+  });
 
   // Handle uploads through flow.js
   app.post('/upload', cors(appConfig.cors.options), userAuthd(redis_client), function(req, res, next){

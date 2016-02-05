@@ -1,7 +1,31 @@
 {
+    "express":{
+        "cors" : {
+          "options" : {
+            "origin": "*",
+            "methods": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "credentials": true,
+            "maxAge": 3600
+          }
+        }
+    },
     "app": {
-        "name": "IXIT - File Sharing and Hosting",
-        "home": "dk33p"
-    }
+        "name": "IXIT File Valut",
+        "server": "ec2-54-191-53-79.us-west-2.compute.amazonaws.com",
+        "AWS_S3" : {
 
+            "S3_BUCKET": "ixit-dkeep-bucket-production"
+        },
+        "AWS_CLOUDFRONT" :{
+            "ID" : "APKAJTEFGCO2LEJLL65A",
+            "CNAME": "djhpbik46zdw1.cloudfront.net",
+            "PROTOCOL": "http",
+            "KEYPAIRID" : "APKAJTEFGCO2LEJLL65A"
+        }
+    }
 }
