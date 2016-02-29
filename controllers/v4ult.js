@@ -17,9 +17,8 @@ module.exports.routes = function(app, redis_client, jobQueue, s3client){
   //
   app.post('/upload/automate', cors(appConfig.cors.options), function (req, res, next) {
     var filename = 'ixitbot-' + Date.now() + '-Image.jpg';
-    console.log(Filemanager);
     var pathToWrite = fs.createWriteStream(path.join(process.cwd(), 'storage', filename ));
-    console.log(req.body);
+    // console.log(req.body);
     request(req.body.thumbnail).pipe(pathToWrite);
     res.json({"saved": true});
   });
