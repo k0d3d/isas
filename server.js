@@ -5,32 +5,30 @@ Main application entry point
 // pull in the package json
 var pjson = require('./package.json');
 console.log('ixit document service version: ' + pjson.version);
+try {
+
 
 // REQUIRE SECTION
-var express = require('express'),
+var 
+    db = require('./lib/db').open(),
+    express = require('express'),
     config = require('config'),
     app = express(),
-    // passport = require('passport'),
     routes = require('./controllers/routes'),
     logger = require('morgan'),
     cookieParser = require('cookie-parser'),
     methodOverride = require('method-override'),
     bodyParser = require('body-parser'),
     session = require('express-session'),
-    // favicon = require('serve-favicon'),
     compress = require('compression'),
     restler = require('restler'),
     downloader = require('./lib/downloader.js'),
     errors = require('./lib/errors'),
     crashProtector = require('common-errors').middleware.crashProtector,
-    helpers = require('view-helpers'),
     url = require('url'),
     uploader = require('./lib/uploader'),
     kue = require('kue'),
-    s3 = require('s3'),
-    useragent = require('express-useragent'),
-    syncIndex = require('./models/media/media.js').syncIndex;
-var RedisStore = require('connect-redis')(session);
+    RedisStore = require('connect-redis')(session);
 
 
 
@@ -39,7 +37,9 @@ app.set('version', pjson.version);
 
 // port
 var port = process.env.PORT || 3001;
-
+} catch (e) {
+  console.log(e);
+}
 
 function afterResourceFilesLoad(redis_client) {
 
@@ -90,8 +90,6 @@ function afterResourceFilesLoad(redis_client) {
     // signed cookies
     app.use(cookieParser(process.env.APP_SECRET));
 
-    app.use(useragent.express());
-
     app.use(bodyParser.urlencoded({
       extended: true
     }));
@@ -103,31 +101,9 @@ function afterResourceFilesLoad(redis_client) {
     //load download middleware
     app.use(downloader());
 
-    // setup session management
-    // console.log('setting up session management, please wait...');
-    // app.use(session({
-    //     resave: true,
-    //     saveUninitialized: true,
-    //     secret: process.env.APP_SECRET,
-    //     store: new MongoStore({
-    //         db: config.db.database,
-    //         host: config.db.server,
-    //         port: config.db.port,
-    //         autoReconnect: true,
-    //         username: config.db.user,
-    //         password: config.db.password,
-    //         collection: "mongoStoreSessions"
-    //     })
-    // }));
 
-    //Initialize Passport
-    // app.use(passport.initialize());
-
-    // //enable passport sessions
-    // app.use(passport.session());
 
     // should be declared after session and flash
-    app.use(helpers(pjson.name));
 
 
     //pass in the app config params in to locals
@@ -138,12 +114,6 @@ function afterResourceFilesLoad(redis_client) {
 
     });
 
-    // our router
-    //app.use(app.router);
-    //
-
-    //re-index es
-    syncIndex();
 
 
     // test route - before anything else
@@ -176,21 +146,6 @@ function afterResourceFilesLoad(redis_client) {
     //job queue instance
     var jobQueue = kue.createQueue({redis: con_opts});
 
-    //s3 upload client
-    var s3client  = s3.createClient({
-        maxAsyncS3: 20,     // this is the default
-        s3RetryCount: 3,    // this is the default
-        s3RetryDelay: 1000, // this is the default
-        multipartUploadThreshold: 20971520, // this is the default (20 MB)
-        multipartUploadSize: 15728640, // this is the default (15 MB)
-        s3Options: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-          // any other options are passed to new AWS.S3()
-          // See: http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html#constructor-property
-        },
-      });
-
     // setup session management
     //debug('setting up session management, please wait...');
 
@@ -208,7 +163,7 @@ function afterResourceFilesLoad(redis_client) {
 
     // our routes
     console.log('setting up routes, please wait...');
-    routes(app, redis_client, jobQueue, s3client);
+    routes(app, redis_client, jobQueue);
 
 
     // assume "not found" in the error msgs
@@ -291,7 +246,7 @@ redis_client.on('error', function (err) {
 });
 
 /*ElasticSearch Connection*/
-console.log("Checking connection to ElasticSearch Server...");
+console.log('Checking connection to ElasticSearch Server...');
 var esurl = process.env.ELASTICSEARCH_SSL_URL || process.env.ELASTICSEARCH_URL;
 restler.get(esurl)
 .on('success', function (data) {
@@ -310,10 +265,9 @@ restler.get(esurl)
 });
 
 /*MongoDB Connection*/
-console.log("Setting up database communication...");
+console.log('Setting up database communication...');
 // setup database connection
-require('./lib/db').open()
-.then(function () {
+db.then(function () {
   console.log('Database Connection open...');
   //load resource
   afterResourceFilesLoad(redis_client);
@@ -331,6 +285,8 @@ require('./lib/db').open()
 
   });
 
+}, function(err) {
+  console.log(err);
 })
 .catch(function (e) {
   console.log(e.stack);

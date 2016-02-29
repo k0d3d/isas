@@ -23,6 +23,46 @@ function V4ult(redis_client, jobQueue, s3client){
   this.chunkList = [];
 }
 
+function IxitFile (filedata) {
+    var self = this;
+    if (!filedata && !arguments.length) {
+      throw new Error('missing arguments for IxitFile constructor');
+    }
+    //unnessary sorting
+    var fileObj = {
+      progress: self._chunkNumber,
+      filename: self._filename,
+      size: self._totalSize,
+      chunkCount: self._totalChunks,
+      sum : self._sum,
+      owner: self._owner,
+      type: self._filetype,
+      folder: self._folder,
+      chunkId: self._chunkId
+    };
+    if (self._chunkNumber === self._totalChunks) {
+      fileObj.completedDate =  Date.now();
+    }
+
+    //for those sometimes, we can add this in here,
+    if (fileObj.filename.indexOf('ixitbot') > -1) {
+      fileObj.folder = 'ixitbot';
+    }
+
+    //set the id
+    fileObj.identifier = Fm.vault_fileId(filedata);
+    for(var f in fileObj) {
+      if (fileObj.hasOwnProperty(f)) {
+        self[f] = fileObj[f];
+      }
+    }
+
+}
+
+IxitFile.prototype.constructor = IxitFile;
+
+
+
 /* Common methods for file upload operation*/
 var vFunc = {
   /**
@@ -96,7 +136,9 @@ var vFunc = {
     var cabinet = new Cabinet();
     if (!fileObj.folder || fileObj.folder !== 'undefined') {
       cabinet.createFolder({
-        name: fileObj.name || 'Home',
+        //breaking change:::
+        //fileObj.name......
+        name: fileObj.folder_name || 'Home',
         owner: fileObj.owner,
         fileId: fileObj.fileId,
         type: (fileObj.parent) ? 'sub': 'root'
@@ -235,7 +277,20 @@ var vFunc = {
 
   },
   /**
-   * moves a file upload from the system temporary directory
+   * a simple prep the 'file object' method.
+   * for now it just occupies space. might
+   * trash it or make it more useful.
+   * @param  {[type]} args
+   * @return {[type]}      [description]
+   */
+  prepFileProperties: function prepFileProperties (fileObj) {
+    var q = Q.defer();
+
+    q.resolve(new IxitFile(fileObj));
+    return q.promise;
+  },
+  /**
+   * deprecated: moves a file upload from the system temporary directory
    * to the APPCHUNKDIR.
    * @param  {[type]} args Expects an object with properties, args.files; the files object
    * from an upload middleware eg formidable, and args.self the upload data sent in the request.
@@ -273,6 +328,7 @@ var vFunc = {
     q.resolve(fileObj);
     return q.promise;
   },
+
   sendToS3 : function sendToS3 (client, vault_fileId) {
     debug('sendTos3');
     var q = Q.defer();
@@ -310,6 +366,49 @@ var vFunc = {
 
 
 V4ult.prototype.constructor = V4ult;
+
+
+/**
+ * this method handles files which have already been
+ * moved into the vault. it can also be used when
+ * making copies of the file and returning the document
+ * saved which should include the ixit id.
+ *
+ * and send response when complete.
+ * @param  {Object}   reqObject      [Request Body]
+ * @param  {Function} callback [description]
+ * @return {[type]}            [description]
+ */
+V4ult.prototype.postCompleteFileHandler = function postCompleteFileHandler (fileObject) {
+  var q = Q.defer(), self = this;
+
+  fileObject._chunkNumber = 1;
+  fileObject._totalChunks = 1;
+
+  vFunc.prepFileProperties(fileObject)
+  .then(function (fileObj) {
+    return vFunc.saveChunkToDB(fileObj);
+  })
+  .then(function (fileObj) {
+    return vFunc.saveChunkToRedis(fileObj, self.redisClient);
+  })
+  .then(function (fileObj) {
+    q.resolve(_.pick(fileObj.fileDocument.toObject(),
+        ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
+    // return self.s3uploader(fileObj);
+  }, function (err) {
+    q.reject(err);
+  })
+  .catch(function (err) {
+    debug(err.stack);
+    q.reject(errors.nounce('UploadHasError'));
+  });
+
+  return q.promise;
+};
+
+
+
 /**
  * postMultipleChunkHandler Handles multiple chunk post request
  * and send response when complete.
@@ -341,7 +440,6 @@ V4ult.prototype.postOneChunkHandler = function postOneChunkHandler (reqObject) {
     debug(err.stack);
     q.reject(errors.nounce('UploadHasError'));
   });
-
 
   return q.promise;
 };
