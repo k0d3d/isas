@@ -23,37 +23,46 @@ function V4ult(redis_client, jobQueue, s3client){
   this.chunkList = [];
 }
 
+/**
+ * [IxitFile description]
+ * @param {[type]} filedata hash with mandatory properties
+ * folder, filename, owner, chunkNumber, totalChunks
+ */
 function IxitFile (filedata) {
     var self = this;
     if (!filedata && !arguments.length) {
       throw new Error('missing arguments for IxitFile constructor');
     }
-    //unnessary sorting
-    var fileObj = {
-      progress: self._chunkNumber,
-      filename: self._filename,
-      size: self._totalSize,
-      chunkCount: self._totalChunks,
-      sum : self._sum,
-      owner: self._owner,
-      type: self._filetype,
-      folder: self._folder,
-      chunkId: self._chunkId
-    };
-    if (self._chunkNumber === self._totalChunks) {
-      fileObj.completedDate =  Date.now();
-    }
 
+    if (!filedata.folder || !filedata.owner) {
+      throw new Error('missing parameter for IxitFile constructor');
+    }
     //for those sometimes, we can add this in here,
-    if (fileObj.filename.indexOf('ixitbot') > -1) {
-      fileObj.folder = 'ixitbot';
+    if (filedata.filename.indexOf('ixitbot') > -1) {
+      filedata.folder = 'ixitbot';
     }
 
-    //set the id
-    fileObj.identifier = Fm.vault_fileId(filedata);
-    for(var f in fileObj) {
-      if (fileObj.hasOwnProperty(f)) {
-        self[f] = fileObj[f];
+    filedata.identifier = [filedata.folder, filedata.owner, filedata.filename, filedata.totalSize, _.random(1, 9999999)].join('-');
+
+    if (
+      !filedata.chunkNumber ||
+      !filedata.totalChunks
+    ) {
+      throw new Error('missing parameter for IxitFile constructor');
+    }
+    if (filedata.chunkNumber === filedata.totalChunks) {
+      filedata.completedDate =  Date.now();
+    }
+    if (!filedata.size) {
+      filedata.size = 1;
+    }
+    if (!filedata.filetype) {
+      filedata.filetype = 'application/octet-stream';
+    }
+
+    for(var f in filedata) {
+      if (filedata.hasOwnProperty(f)) {
+        self[f] = filedata[f];
       }
     }
 
@@ -138,10 +147,10 @@ var vFunc = {
       cabinet.createFolder({
         //breaking change:::
         //fileObj.name......
-        name: fileObj.folder_name || 'Home',
+        name: fileObj.folder_name || fileObj.folder || 'Home',
         owner: fileObj.owner,
         fileId: fileObj.fileId,
-        type: (fileObj.parent) ? 'sub': 'root'
+        foldertype: (fileObj.parent) ? 'sub': 'root'
       }, function(r){
         fileObj.folder = r._id;
         q.resolve(fileObj);
@@ -285,8 +294,10 @@ var vFunc = {
    */
   prepFileProperties: function prepFileProperties (fileObj) {
     var q = Q.defer();
-
-    q.resolve(new IxitFile(fileObj));
+    vFunc.checkFolder(fileObj)
+    .then(function (newFileObj) {
+      q.resolve(new IxitFile(newFileObj));
+    })
     return q.promise;
   },
   /**
@@ -304,25 +315,25 @@ var vFunc = {
     // Save the chunk (TODO: OVERWRITE)
     // fs.rename(
     //   files[self.fileParameterName].path,
-    //   fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
+    //   fm.getChunkFilePath(self.chunkNumber, self.vault_fileId()),
     //   function(err){
     //     if (err) {
     //       return q.reject(err);
     //     }
     // });
     var fileObj = {
-      progress: self._chunkNumber,
+      progress: self.chunkNumber,
       identifier: self.identifier,
-      filename: self._filename,
+      filename: self.filename,
       size: self._totalSize,
       chunkCount: self._totalChunks,
-      sum : self._sum,
-      owner: self._owner,
+      sum : self.sum,
+      owner: self.owner,
       type: self._filetype,
       folder: self._folder,
       chunkId: self._chunkId
     };
-    if (self._chunkNumber === self._totalChunks) {
+    if (self.chunkNumber === self._totalChunks) {
       fileObj.completedDate =  Date.now();
     }
     q.resolve(fileObj);
@@ -381,9 +392,6 @@ V4ult.prototype.constructor = V4ult;
  */
 V4ult.prototype.postCompleteFileHandler = function postCompleteFileHandler (fileObject) {
   var q = Q.defer(), self = this;
-
-  fileObject._chunkNumber = 1;
-  fileObject._totalChunks = 1;
 
   vFunc.prepFileProperties(fileObject)
   .then(function (fileObj) {
@@ -574,11 +582,11 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
 V4ult.prototype.getHandler = function  (params){
   var fm = new Fm(), q = Q.defer();
 
-  if(fm.validateRequest(params._chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params._filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilePath(params._chunkNumber, fm.vault_fileId(params));
+  if(fm.validateRequest(params.chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params.filename) === 'valid') {
+    var chunkFilename = fm.getChunkFilePath(params.chunkNumber, fm.vault_fileId(params));
     fs.exists(chunkFilename, function(exists){
       if(exists){
-        return q.resolve({'chunkFilename': chunkFilename, 'filename': params._filename, 'identifier': params._chunkId});
+        return q.resolve({'chunkFilename': chunkFilename, 'filename': params.filename, 'identifier': params._chunkId});
       } else {
         return q.reject(errors.httpError(404));
       }

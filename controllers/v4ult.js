@@ -17,7 +17,7 @@ module.exports.routes = function(app, redis_client, jobQueue){
   //
   app.post('/upload/automate', cors(appConfig.cors.options), function (req, res, next) {
     var filename = 'ixitbot-' + Date.now() + '-Image.jpg';
-    var vault = new V4ult();
+    var vault = new V4ult(redis_client, jobQueue);
     vault.postCompleteFileHandler(req.body)
     .then(function (file_result) {
       var pathToWrite = fs.createWriteStream(path.join(process.cwd(), 'storage', filename ));
@@ -79,4 +79,4 @@ module.exports.routes = function(app, redis_client, jobQueue){
     });
   });
 
-};
+};
