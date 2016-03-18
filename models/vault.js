@@ -23,6 +23,55 @@ function V4ult(redis_client, jobQueue, s3client){
   this.chunkList = [];
 }
 
+/**
+ * [IxitFile description]
+ * @param {[type]} filedata hash with mandatory properties
+ * folder, filename, owner, chunkNumber, totalChunks
+ */
+function IxitFile (filedata) {
+    var self = this;
+    if (!filedata && !arguments.length) {
+      throw new Error('missing arguments for IxitFile constructor');
+    }
+
+    if (!filedata.folder || !filedata.owner) {
+      throw new Error('missing parameter for IxitFile constructor');
+    }
+    //for those sometimes, we can add this in here,
+    if (filedata.filename.indexOf('ixitbot') > -1) {
+      filedata.folder = 'ixitbot';
+    }
+
+    filedata.identifier = [filedata.folder, filedata.owner, filedata.filename, filedata.totalSize, _.random(1, 9999999)].join('-');
+
+    if (
+      !filedata.chunkNumber ||
+      !filedata.totalChunks
+    ) {
+      throw new Error('missing parameter for IxitFile constructor');
+    }
+    if (filedata.chunkNumber === filedata.totalChunks) {
+      filedata.completedDate =  Date.now();
+    }
+    if (!filedata.size) {
+      filedata.size = 1;
+    }
+    if (!filedata.filetype) {
+      filedata.filetype = 'application/octet-stream';
+    }
+
+    for(var f in filedata) {
+      if (filedata.hasOwnProperty(f)) {
+        self[f] = filedata[f];
+      }
+    }
+
+}
+
+IxitFile.prototype.constructor = IxitFile;
+
+
+
 /* Common methods for file upload operation*/
 var vFunc = {
   /**
@@ -96,10 +145,12 @@ var vFunc = {
     var cabinet = new Cabinet();
     if (!fileObj.folder || fileObj.folder !== 'undefined') {
       cabinet.createFolder({
-        name: fileObj.name || 'Home',
+        //breaking change:::
+        //fileObj.name......
+        name: fileObj.folder_name || fileObj.folder || 'Home',
         owner: fileObj.owner,
         fileId: fileObj.fileId,
-        type: (fileObj.parent) ? 'sub': 'root'
+        foldertype: (fileObj.parent) ? 'sub': 'root'
       }, function(r){
         fileObj.folder = r._id;
         q.resolve(fileObj);
@@ -235,7 +286,22 @@ var vFunc = {
 
   },
   /**
-   * moves a file upload from the system temporary directory
+   * a simple prep the 'file object' method.
+   * for now it just occupies space. might
+   * trash it or make it more useful.
+   * @param  {[type]} args
+   * @return {[type]}      [description]
+   */
+  prepFileProperties: function prepFileProperties (fileObj) {
+    var q = Q.defer();
+    vFunc.checkFolder(fileObj)
+    .then(function (newFileObj) {
+      q.resolve(new IxitFile(newFileObj));
+    })
+    return q.promise;
+  },
+  /**
+   * deprecated: moves a file upload from the system temporary directory
    * to the APPCHUNKDIR.
    * @param  {[type]} args Expects an object with properties, args.files; the files object
    * from an upload middleware eg formidable, and args.self the upload data sent in the request.
@@ -249,30 +315,31 @@ var vFunc = {
     // Save the chunk (TODO: OVERWRITE)
     // fs.rename(
     //   files[self.fileParameterName].path,
-    //   fm.getChunkFilePath(self._chunkNumber, self.vault_fileId()),
+    //   fm.getChunkFilePath(self.chunkNumber, self.vault_fileId()),
     //   function(err){
     //     if (err) {
     //       return q.reject(err);
     //     }
     // });
     var fileObj = {
-      progress: self._chunkNumber,
+      progress: self.chunkNumber,
       identifier: self.identifier,
-      filename: self._filename,
+      filename: self.filename,
       size: self._totalSize,
       chunkCount: self._totalChunks,
-      sum : self._sum,
-      owner: self._owner,
+      sum : self.sum,
+      owner: self.owner,
       type: self._filetype,
       folder: self._folder,
       chunkId: self._chunkId
     };
-    if (self._chunkNumber === self._totalChunks) {
+    if (self.chunkNumber === self._totalChunks) {
       fileObj.completedDate =  Date.now();
     }
     q.resolve(fileObj);
     return q.promise;
   },
+
   sendToS3 : function sendToS3 (client, vault_fileId) {
     debug('sendTos3');
     var q = Q.defer();
@@ -310,6 +377,46 @@ var vFunc = {
 
 
 V4ult.prototype.constructor = V4ult;
+
+
+/**
+ * this method handles files which have already been
+ * moved into the vault. it can also be used when
+ * making copies of the file and returning the document
+ * saved which should include the ixit id.
+ *
+ * and send response when complete.
+ * @param  {Object}   reqObject      [Request Body]
+ * @param  {Function} callback [description]
+ * @return {[type]}            [description]
+ */
+V4ult.prototype.postCompleteFileHandler = function postCompleteFileHandler (fileObject) {
+  var q = Q.defer(), self = this;
+
+  vFunc.prepFileProperties(fileObject)
+  .then(function (fileObj) {
+    return vFunc.saveChunkToDB(fileObj);
+  })
+  .then(function (fileObj) {
+    return vFunc.saveChunkToRedis(fileObj, self.redisClient);
+  })
+  .then(function (fileObj) {
+    q.resolve(_.pick(fileObj.fileDocument.toObject(),
+        ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
+    // return self.s3uploader(fileObj);
+  }, function (err) {
+    q.reject(err);
+  })
+  .catch(function (err) {
+    debug(err.stack);
+    q.reject(errors.nounce('UploadHasError'));
+  });
+
+  return q.promise;
+};
+
+
+
 /**
  * postMultipleChunkHandler Handles multiple chunk post request
  * and send response when complete.
@@ -341,7 +448,6 @@ V4ult.prototype.postOneChunkHandler = function postOneChunkHandler (reqObject) {
     debug(err.stack);
     q.reject(errors.nounce('UploadHasError'));
   });
-
 
   return q.promise;
 };
@@ -476,11 +582,11 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
 V4ult.prototype.getHandler = function  (params){
   var fm = new Fm(), q = Q.defer();
 
-  if(fm.validateRequest(params._chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params._filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilePath(params._chunkNumber, fm.vault_fileId(params));
+  if(fm.validateRequest(params.chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params.filename) === 'valid') {
+    var chunkFilename = fm.getChunkFilePath(params.chunkNumber, fm.vault_fileId(params));
     fs.exists(chunkFilename, function(exists){
       if(exists){
-        return q.resolve({'chunkFilename': chunkFilename, 'filename': params._filename, 'identifier': params._chunkId});
+        return q.resolve({'chunkFilename': chunkFilename, 'filename': params.filename, 'identifier': params._chunkId});
       } else {
         return q.reject(errors.httpError(404));
       }

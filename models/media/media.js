@@ -15,7 +15,7 @@ var MediaSchema = new Schema({
 	progress: Number,
 	chunkCount: Number,
 	visible: {type: Number, default: 1},
-	type: {type: String, required: true},
+	filetype: {type: String, required: true},
 	size: {type: Number, required: true},
 	completedDate: {type: Date, es_type:'date'},
 	mediaNumber: {type: String},
@@ -40,7 +40,7 @@ var MediaSchema = new Schema({
  */
 var FolderSchema = new Schema({
 	name: {type: String, required: true, es_indexed:true},
-	type: {type: String, default: 'root'},
+	foldertype: {type: String, default: 'root'},
 	parent:{type: Schema.ObjectId},
 	folderId: {type: String, unique: true},
 	owner: {type: String},

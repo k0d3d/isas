@@ -11,7 +11,7 @@ var Media = require('./media/media.js').Media,
     util = require('util'),
     url = require('url'),
     moment = require('moment'),
-    CF = require('aws-cloudfront-sign'),
+    // CF = require('aws-cloudfront-sign'),
     Fm = require('../lib/file-manager.js');
 
 /*
