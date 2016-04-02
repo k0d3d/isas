@@ -41,6 +41,7 @@
     "forever": "latest",
     "formidable": "latest",
     "hashids": "1.0.0",
+    "hawk": "^4.1.2",
     "iron": "^4.0.0",
     "jade": "latest",
     "jsonwebtoken": "latest",

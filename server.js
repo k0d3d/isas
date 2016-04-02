@@ -5,11 +5,9 @@ Main application entry point
 // pull in the package json
 var pjson = require('./package.json');
 console.log('ixit document service version: ' + pjson.version);
-try {
-
 
 // REQUIRE SECTION
-var 
+var
     db = require('./lib/db').open(),
     express = require('express'),
     config = require('config'),
@@ -33,13 +31,10 @@ var
 
 
 // set version
-app.set('version', pjson.version);
 
 // port
 var port = process.env.PORT || 3001;
-} catch (e) {
-  console.log(e);
-}
+
 
 function afterResourceFilesLoad(redis_client) {
 
@@ -227,7 +222,7 @@ console.log("Running Environment: %s", process.env.NODE_ENV);
 /*Redis Connection*/
 console.log('Creating connection to redis server...');
 
-var REDIS = url.parse(process.env.REDIS_URL);
+var REDIS = require('url').parse(process.env.REDIS_URL);
 var redis_client = require('redis').createClient( REDIS.port, REDIS.hostname, {});
 if (REDIS.auth) {
   var REDIS_AUTH = REDIS.auth.split(':');
@@ -245,24 +240,24 @@ redis_client.on('error', function (err) {
   }
 });
 
-/*ElasticSearch Connection*/
-console.log('Checking connection to ElasticSearch Server...');
-var esurl = process.env.ELASTICSEARCH_SSL_URL || process.env.ELASTICSEARCH_URL;
-restler.get(esurl)
-.on('success', function (data) {
-  if (data.status === 200) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('ES running on ' + process.env.ELASTICSEARCH_URL);
-    }
-  }
-})
-.on('error', function (data) {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('Error Connecting to ES on ' + process.env.ELASTICSEARCH_URL);
-  } else {
-    console.log('Error Connecting to ES');
-  }
-});
+// /*ElasticSearch Connection*/
+// console.log('Checking connection to ElasticSearch Server...');
+// var esurl = process.env.ELASTICSEARCH_SSL_URL || process.env.ELASTICSEARCH_URL;
+// restler.get(esurl)
+// .on('success', function (data) {
+//   if (data.status === 200) {
+//     if (process.env.NODE_ENV !== 'production') {
+//       console.log('ES running on ' + process.env.ELASTICSEARCH_URL);
+//     }
+//   }
+// })
+// .on('error', function (data) {
+//   if (process.env.NODE_ENV !== 'production') {
+//     console.log('Error Connecting to ES on ' + process.env.ELASTICSEARCH_URL);
+//   } else {
+//     console.log('Error Connecting to ES');
+//   }
+// });
 
 /*MongoDB Connection*/
 console.log('Setting up database communication...');

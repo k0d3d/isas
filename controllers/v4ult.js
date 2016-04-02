@@ -79,4 +79,4 @@ module.exports.routes = function(app, redis_client, jobQueue){
     });
   });
 
-};
+};

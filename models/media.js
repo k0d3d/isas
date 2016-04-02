@@ -318,7 +318,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
 };
 
 /**
- * [getFile description]
+ * returns a file as mongoose model
  * @param  {[type]}   mediaId [description]
  * @param  {Function} cb      [description]
  * @return {[type]}           [description]
@@ -372,11 +372,25 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
   this.getFile(mediaId, function(fileNfo){
     var filePath = path.join(process.cwd(), 'storage',fileNfo.identifier);
     fs.exists(filePath, function(itdz){
-      if(itdz){
-        cb(filePath, fileNfo.filename);
-      }else{
-        cb(new Error('missing file'));
-      }
+      // if(itdz){
+        // increase d download count here
+        Media.update({
+          _id: fileNfo._id
+        }, {
+          $inc: {
+            downloadCount: 1
+          }
+        })
+        .exec(function (err, done) {
+          if (err) {
+            return cb(err);
+          }
+          
+          cb(filePath, fileNfo.filename);
+        })
+      // }else{
+      //   cb(new Error('missing file'));
+      // }
     });
   });
 
