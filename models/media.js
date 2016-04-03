@@ -438,7 +438,7 @@ CabinetObject.prototype.createFolder = function(props, cb){
   .findOne({folderId: folderId})
   .exec(function(err, i){
     if(!_.isEmpty(i)){
-      cb(i);
+      cb(null, i);
     }else{
       //If we cant find a folder
       //we make one.
@@ -449,7 +449,7 @@ CabinetObject.prototype.createFolder = function(props, cb){
           util.puts(err);
           cb(new Error('Error creating folder'));
         }else{
-          cb(i);
+          cb(null, i);
         }
       });
     }

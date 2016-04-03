@@ -1,0 +1,30 @@
+{
+    "express":{
+        "cors" : {
+          "options" : {
+            "origin": "http://i-x.it",
+            "methods": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE"
+            ],
+            "credentials": true,
+            "maxAge": 3600
+          }
+        }
+    },
+    "app": {
+        "name": "IXIT - File Sharing and Hosting",
+        "home": "dk33p",
+        "AWS_S3" : {
+            "S3_BUCKET": "ixit-dkeep-bucket-development"
+        },
+        "AWS_CLOUDFRONT" :{
+            "ID" : "APKAJTEFGCO2LEJLL65A",
+            "CNAME": "djhpbik46zdw1.cloudfront.net",
+            "PROTOCOL": "http",
+            "KEYPAIRID" : "APKAJTEFGCO2LEJLL65A"
+        }
+    }
+}

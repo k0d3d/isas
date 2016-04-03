@@ -67,7 +67,12 @@ MediaSchema.virtual('ixid')
 
 MediaSchema.path('folder')
 .get(function (v) {
-	return hashr.hashOid(v.toString());
+	if (v) {
+		return hashr.hashOid(v.toString());
+	} else {
+		return '';
+	}
+	
 });
 
 FolderSchema.path('parent')
@@ -192,4 +197,4 @@ function syncIndex () {
   });
 }
 
-module.exports.syncIndex = syncIndex;
+module.exports.syncIndex = syncIndex;

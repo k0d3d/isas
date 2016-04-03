@@ -55,6 +55,10 @@ module.exports.routes = function(app, redis_client, jobQueue){
       res.status(200).json(status);
     }, function (err) {
       next(err);
+    })
+    .catch(function (e) {
+      console.log(e);
+      throw e;
     });
   });
 
@@ -80,3 +84,4 @@ module.exports.routes = function(app, redis_client, jobQueue){
   });
 
 };
+

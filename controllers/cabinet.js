@@ -1,6 +1,8 @@
 var CabinetObject = require('../models/media.js').cabinet,
     util = require('util'),
     _ = require('lodash'),
+    cors = require('cors'),
+    appConfig = require('config').express,
     hawk = require('../lib/hawk'),
     hashr = require('../lib/hash.js');
 
@@ -84,7 +86,7 @@ module.exports.routes = function(app){
   });
 
   //Send the file to the browser to be downloaded
-  app.get('/download/:mediaId', hawk(), function(req, res, next){
+  app.get('/download/:mediaId', cors(appConfig.cors.options), function(req, res, next){
     cabinet.serveFile(req.params.mediaId, function(r, filename){
       if(util.isError(r)){
         next(r);
@@ -187,4 +189,4 @@ module.exports.routes = function(app){
       }
     });
   });
-};
+};
