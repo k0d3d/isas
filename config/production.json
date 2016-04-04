@@ -2,7 +2,7 @@
     "express":{
         "cors" : {
           "options" : {
-            "origin": "http://i-x.it",
+            "origin": "*",
             "methods": [
               "GET",
               "POST",

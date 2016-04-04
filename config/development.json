@@ -10,7 +10,7 @@
         "secret": "fwsefwU&&@n*#UNB!@g7509",
         "cors" : {
           "options" : {
-            "origin": "http://localhost:3003",
+            "origin": "*",
             "methods": [
               "GET",
               "POST",
