@@ -1,6 +1,6 @@
 {
   "name": "IXIT-Media-Server",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Handles file uploads and manages media ",
   "main": "server.js",
   "private": true,
