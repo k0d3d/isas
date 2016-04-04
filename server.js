@@ -1,3 +1,4 @@
+require('newrelic');
 /*
 Main application entry point
  */
@@ -118,15 +119,6 @@ function afterResourceFilesLoad(redis_client) {
     .get(function(req, res) {
         res.send('IXIT Document Server is running');
     });
-
-    // test route - before anything else
-    console.log('setting up ping route /ping');
-
-    app.route('/ping')
-    .get(function(req, res) {
-        res.send('ready');
-    });
-
 
     var REDIS = url.parse(process.env.REDIS_URL || 'redis://127.0.0.1:6379'), con_opts = {};
 
