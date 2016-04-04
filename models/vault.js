@@ -41,7 +41,7 @@ function IxitFile (filedata) {
     if (filedata._filename.indexOf('ixitbot') > -1) {
       filedata.folder = 'ixitbot';
     }
-  
+
 //     var fm = new Fm();
 //     filedata.identifier = fm.getChunkFilePath(filedata._chunkNumber, fm.vault_fileId(filedata));
 
@@ -85,7 +85,6 @@ function dbValuesAssembly (fileObj) {
           filetype: fileObj._filetype,
           size: fileObj._totalSize,
           folder: fileObj.filefolder,
-          mediaNumber: ''+ u.mediaNumber(),
   }
 }
 
@@ -224,7 +223,7 @@ var vFunc = {
     debug('saveChunkToRedis');
     var q = Q.defer();
 
-    if ((fileObj.progress == fileObj.chunkCount) || fileObj.progress == 1) {
+    if ((fileObj._chunkNumber == fileObj._totalChunks) || fileObj._chunkNumber == 1) {
       redisClient.hmset(fileObj.identifier, _.pick(fileObj.fileDocument,
         ['progress', 'identifier', 'chunkCount', 'mediaNumber']),
         function (err){
@@ -237,9 +236,10 @@ var vFunc = {
     } else {
       vFunc.getChunkFromRedis(fileObj.identifier, redisClient)
       .then(function (fileDocument) {
-        var extendedFileHash = _.extend(fileDocument, _.pick(fileObj,
-        ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
-        redisClient.hmset(fileObj.identifier, extendedFileHash,
+        fileDocument.progress = fileObj._chunkNumber;
+//         var extendedFileHash = _.extend(fileDocument, _.pick(fileObj,
+//         ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
+        redisClient.hmset(fileObj.identifier, fileDocument,
           function (err){
             if (err) {
               return q.reject(err);

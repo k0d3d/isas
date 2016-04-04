@@ -4,6 +4,7 @@
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongoosastic = require('mongoosastic'),
+    u = require('../../lib/utility'),
     hashr = require('../../lib/hash.js');
 
 var MediaSchema = new Schema({
@@ -72,7 +73,7 @@ MediaSchema.path('folder')
 	} else {
 		return '';
 	}
-	
+
 });
 
 FolderSchema.path('parent')
@@ -82,6 +83,14 @@ FolderSchema.path('parent')
 	} else {
 		return '';
 	}
+});
+
+MediaSchema.pre('save', function(next) {
+    if (this.isNew) {
+        this.mediaNumber = u.mediaNumber();
+        // Hooray!
+        next();
+    }
 });
 
 /*
@@ -197,4 +206,4 @@ function syncIndex () {
   });
 }
 
-module.exports.syncIndex = syncIndex;
+module.exports.syncIndex = syncIndex;
