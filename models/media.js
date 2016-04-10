@@ -11,6 +11,7 @@ var Media = require('./media/media.js').Media,
     util = require('util'),
     url = require('url'),
     moment = require('moment'),
+    debug = require('debug')('dkeep'),
     // CF = require('aws-cloudfront-sign'),
     Fm = require('../lib/file-manager.js');
 
@@ -329,6 +330,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
     Media.findOne({'mediaNumber': mediaId, 'visible': 1})
     .lean()
     .exec(function(err, i){
+      debug(i);
       if(err){
         if (_.isFunction (cb)) {
           cb(err);
@@ -385,7 +387,7 @@ CabinetObject.prototype.findUserHome = function(userId, cb){
           if (err) {
             return cb(err);
           }
-          
+
           cb(filePath, fileNfo.filename);
         })
       // }else{

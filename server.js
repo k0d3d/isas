@@ -200,13 +200,6 @@ function afterResourceFilesLoad(redis_client) {
       }
 
     });
-
-
-    // development env config
-    if (process.env.NODE_ENV == 'development') {
-      app.locals.pretty = true;
-    }
-
 }
 
 

@@ -5,6 +5,7 @@
   "main": "server.js",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "https://github.com/k0d3d/dkeep",
@@ -41,7 +42,6 @@
     "forever": "latest",
     "formidable": "latest",
     "hashids": "1.0.0",
-    "hawk": "^4.1.2",
     "id3js": "^1.1.3",
     "iron": "^4.0.0",
     "jade": "latest",

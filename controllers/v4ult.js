@@ -7,6 +7,7 @@ var V4ult = require('../models/vault.js'),
     fs = require('fs'),
     path = require('path'),
     cors = require('cors'),
+    debug = require('debug')('dkeep:vault-routes'),
     userAuthd = require('../lib/middlewares/authorization');
 
 
@@ -58,7 +59,7 @@ module.exports.routes = function(app, redis_client, jobQueue){
     })
     .catch(function (e) {
       console.log(e);
-      throw e;
+      // throw e;
     });
   });
 
@@ -73,6 +74,7 @@ module.exports.routes = function(app, redis_client, jobQueue){
 
   // Handle status checks on chunks through flow.js
   app.get('/upload',cors(appConfig.cors.options), userAuthd(redis_client), function(req, res){
+    debug('damn what a day');
     var fm = new Filemanager(req);
     var fields = _.extend({}, req.query, req.headers);
     v4ult.getHandler(fm.setFields(fields))
@@ -84,4 +86,4 @@ module.exports.routes = function(app, redis_client, jobQueue){
   });
 
 };
-
+

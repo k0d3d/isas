@@ -3,7 +3,6 @@ var CabinetObject = require('../models/media.js').cabinet,
     _ = require('lodash'),
     cors = require('cors'),
     appConfig = require('config').express,
-    hawk = require('../lib/hawk'),
     hashr = require('../lib/hash.js');
 
 module.exports.routes = function(app){
@@ -189,4 +188,4 @@ module.exports.routes = function(app){
       }
     });
   });
-};
+};

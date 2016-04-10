@@ -2,8 +2,7 @@
  * Module dependcies
  */
 var
-    jwt = require('jsonwebtoken'),
-    hawk = require('../lib/hawk.js');
+    jwt = require('jsonwebtoken');
 
 
 /**
@@ -13,13 +12,13 @@ var
 module.exports = function (app, redis_client, jobQueue) {
 
   var vault = require('./v4ult');
-  vault.routes(app, redis_client, jobQueue, hawk);
+  vault.routes(app, redis_client, jobQueue);
 
   var cabinet = require('./cabinet');
-  cabinet.routes(app, redis_client, jobQueue, hawk);
+  cabinet.routes(app, redis_client, jobQueue);
 
 
-  app.post('/request-token', hawk(), function (req, res) {
+  app.post('/request-token', function (req, res) {
     //hash object using clientid
     var token = jwt.sign(req.body, req.body.clientId, {expiresInMinutes: 60});
     //store in redis

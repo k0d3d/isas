@@ -76,6 +76,7 @@ function IxitFile (filedata) {
 IxitFile.prototype.constructor = IxitFile;
 
 function dbValuesAssembly (fileObj) {
+  if (fileObj.isTransformed) return fileObj;
   return {
           filename: fileObj._filename,
           identifier: fileObj.identifier,
@@ -85,6 +86,7 @@ function dbValuesAssembly (fileObj) {
           filetype: fileObj._filetype,
           size: fileObj._totalSize,
           folder: fileObj.filefolder,
+          isTransformed: true
   }
 }
 
@@ -96,14 +98,17 @@ var vFunc = {
    * @return {Promise}       Promise
    */
   saveChunkToDB: function saveChunkToDB (fileObj) {
-    debug('saveChunkToDB');
+    debug(fileObj);
     var d = Q.defer();
 
-    //if its completed or just beginning
-    if ((fileObj._chunkNumber == fileObj._totalChunks) || fileObj._chunkNumber == 1) {
+    //just beginning
+    if (fileObj._chunkNumber == 1) {
       var q = Media.findOne({'owner': fileObj._owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
+        if (err) {
+          return d.reject(err);
+        }
         //remove "undefined" values
         if (fileObj.folder === undefined || fileObj.folder === 'undefined') {
           delete fileObj.folder;
@@ -127,24 +132,47 @@ var vFunc = {
               });
             }
           });
-        }else{
-          Media.update({identifier: fileObj.identifier}, dbValuesAssembly(fileObj), function(err, done){
-            if(err){
-              d.reject(err);
-            }
-            if (done){
+        } else {
+          d.resolve(fileObj);
+          return d.promise;
+        }
+      });
+    }
+    //if upload is complete
+    else if (fileObj._chunkNumber == fileObj._totalChunks){
+      var q = Media.findOne({'owner': fileObj._owner, 'visible':1});
+      q.where('identifier', fileObj.identifier);
+      q.exec(function (err, foundDoc) {
+        if (err) {
+          return d.reject(err);
+        }
+        if(!foundDoc){
+
+          d.reject(errors.nounce('OperationFailed'));
+          return d.promise;
+        }
+        foundDoc.progress =  dbValuesAssembly(fileObj).progress;
+        foundDoc.completedDate = Date.now();
+        foundDoc.save(function (err, foundDoc) {
+            if (foundDoc){
               fileObj.fileDocument = foundDoc;
               d.resolve(fileObj);
             } else {
               d.reject(errors.nounce('UpdateHasError'));
             }
-          });
-        }
-      });
-    } else {
-      d.resolve(fileObj);
-      return d.promise;
+        });
+      })
     }
+        //   Media.update({identifier: fileObj.identifier}, dbValuesAssembly(fileObj), function(err, done){
+        //     if(err){
+        //       d.reject(err);
+        //     }
+
+        //   });
+        // } else {
+        //   d.resolve(fileObj);
+        //   return d.promise;
+        // }
 
     return d.promise;
   },
@@ -483,6 +511,7 @@ V4ult.prototype.postOneChunkHandler = function postOneChunkHandler (reqObject) {
 V4ult.prototype.postMultipleChunkHandler = function (reqObject){
   var self = this;
   var q = Q.defer();
+  debug('postMultipleChunkHandler');
 
   //should add chunk processing to job queue
   var job = self.jobQueue.create('upload', reqObject);
@@ -509,15 +538,18 @@ V4ult.prototype.postMultipleChunkHandler = function (reqObject){
 
   self.jobQueue.process('upload', function (job, done){
     /* carry out all the job function here */
-
+    debug('processing-upload-job');
     vFunc.prepFileProperties(job.data)
     .then(function (f) {
+      debug('joinCompletedFileUpload');
       return vFunc.joinCompletedFileUpload(f);
     })
     .then(function (fileObj) {
+      debug('now savetodb');
       return vFunc.saveChunkToDB(fileObj);
     })
     .then(function (fileObj) {
+      debug('save to redis');
       return vFunc.saveChunkToRedis(fileObj, self.redisClient);
     })
     .then(vFunc.deleteUploadChunks)
@@ -530,6 +562,7 @@ V4ult.prototype.postMultipleChunkHandler = function (reqObject){
       q.reject(errors.nounce('UploadHasError'));
     })
     .done(function () {
+      debug('done');
       if (done) {
         done();
       }
