@@ -23,31 +23,47 @@ function V4ult(redis_client, jobQueue, s3client){
   this.chunkList = [];
 }
 
+
+function normalizer (collection, field) {
+  var i;
+  if (collection[field]) {
+    i = collection[field];
+  } else if (collection['_'+field]) {
+    i = collection['_' + field];
+  } else {
+    throw new errors.ArgumentError('normalizer', field);
+  }
+  console.log(i);
+  return i;
+}
 /**
  * [IxitFile description]
  * @param {[type]} filedata hash with mandatory properties
  * folder, filename, owner, chunkNumber, totalChunks
  */
 function IxitFile (filedata) {
+  // console.log(filedata);
+  // console.log(filedata[normalizer(filedata, 'filename')]);
+  // console.log(filedata[normalizer(filedata, 'owner')]);
     var self = this;
     if (!filedata && !arguments.length) {
       throw new Error('missing arguments for IxitFile constructor');
     }
 
-    if (!filedata.filefolder || !filedata._owner) {
+    if (!filedata.filefolder || !filedata.owner) {
       throw new Error('missing parameter for IxitFile constructor');
     }
     //for those sometimes, we can add this in here,
-    if (filedata._filename.indexOf('ixitbot') > -1) {
-      filedata.folder = 'ixitbot';
-    }
+    // if (filedata[normalizer(filedata, 'folder')].indexOf('ixitbot') > -1) {
+    //   filedata.folder = 'ixitbot';
+    // }
 
 //     var fm = new Fm();
 //     filedata.identifier = fm.getChunkFilePath(filedata._chunkNumber, fm.vault_fileId(filedata));
-
+    console.log(filedata);
     if (
-      !filedata._chunkNumber ||
-      !filedata._totalChunks
+      !filedata[normalizer(filedata, 'chunkNumber')] ||
+      !filedata[normalizer(filedata, 'totalChunks')]
     ) {
       throw new Error('missing parameter for IxitFile constructor');
     }
@@ -189,8 +205,11 @@ var vFunc = {
     cabinet.createFolder({
       //breaking change:::
       //fileObj.name......
-      name: (fileObj._folder != 'undefined') ? fileObj._folder : 'Home',
-      owner: fileObj._owner,
+      name: (fileObj.folder != 'undefined' &&
+        fileObj.folder != undefined &&
+        fileObj.folder.length > 0
+      ) ? fileObj.folder : 'Home',
+      owner: fileObj.owner,
       fileId: fileObj.fileId,
       foldertype: (fileObj.parent) ? 'sub': 'root'
     }, function(err, r){
@@ -349,46 +368,6 @@ var vFunc = {
     });
     return q.promise;
   },
-  /**
-   * deprecated: moves a file upload from the system temporary directory
-   * to the APPCHUNKDIR.
-   * @param  {[type]} args Expects an object with properties, args.files; the files object
-   * from an upload middleware eg formidable, and args.self the upload data sent in the request.
-   * @return {[type]}      [description]
-   */
-  moveFile: function moveFile (self) {
-    var q = Q.defer();
-
-
-
-    // Save the chunk (TODO: OVERWRITE)
-    // fs.rename(
-    //   files[self.fileParameterName].path,
-    //   fm.getChunkFilePath(self.chunkNumber, self.vault_fileId()),
-    //   function(err){
-    //     if (err) {
-    //       return q.reject(err);
-    //     }
-    // });
-    var fileObj = {
-      progress: self.chunkNumber,
-      identifier: self.identifier,
-      filename: self.filename,
-      size: self._totalSize,
-      chunkCount: self._totalChunks,
-      sum : self.sum,
-      owner: self.owner,
-      type: self._filetype,
-      folder: self._folder,
-      chunkId: self._chunkId
-    };
-    if (self.chunkNumber === self._totalChunks) {
-      fileObj.completedDate =  Date.now();
-    }
-    q.resolve(fileObj);
-    return q.promise;
-  },
-
   sendToS3 : function sendToS3 (client, vault_fileId) {
     debug('sendTos3');
     var q = Q.defer();

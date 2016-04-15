@@ -429,11 +429,12 @@ CabinetObject.prototype.count = function(userId, cb){
 };
 
 CabinetObject.prototype.createFolder = function(props, cb){
+  console.log(props);
   if(!props.name) {return cb(new Error('Empty Folder name'));}
   if(!props.owner) {return cb(new Error('Owner not supplied'));}
   if(props.type === 'sub' && !props.parent) {return cb(new Error('Parent folder not supplied'));}
 
-  var folderId = [props.name, props.owner, props.parent].join('-');
+  var folderId = [props.folder, props.owner, props.parent].join('-');
 
   //Find the folder first
   Folder
