@@ -23,19 +23,6 @@ function V4ult(redis_client, jobQueue, s3client){
   this.chunkList = [];
 }
 
-
-function normalizer (collection, field) {
-  var i;
-  if (collection[field]) {
-    i = collection[field];
-  } else if (collection['_'+field]) {
-    i = collection['_' + field];
-  } else {
-    throw new errors.ArgumentError('normalizer', field);
-  }
-  console.log(i);
-  return i;
-}
 /**
  * [IxitFile description]
  * @param {[type]} filedata hash with mandatory properties
@@ -54,29 +41,26 @@ function IxitFile (filedata) {
       throw new Error('missing parameter for IxitFile constructor');
     }
     //for those sometimes, we can add this in here,
-    // if (filedata[normalizer(filedata, 'folder')].indexOf('ixitbot') > -1) {
-    //   filedata.folder = 'ixitbot';
-    // }
+    if (filedata.filename.indexOf('ixitbot') > -1) {
+      filedata.folder = 'ixitbot';
+    }
 
-//     var fm = new Fm();
-//     filedata.identifier = fm.getChunkFilePath(filedata._chunkNumber, fm.vault_fileId(filedata));
-    console.log(filedata);
     if (
-      !filedata[normalizer(filedata, 'chunkNumber')] ||
-      !filedata[normalizer(filedata, 'totalChunks')]
+      !filedata.chunkNumber ||
+      !filedata.totalChunks
     ) {
       throw new Error('missing parameter for IxitFile constructor');
     }
-    if (filedata._chunkNumber === filedata._totalChunks) {
+    if (filedata.chunkNumber === filedata.totalChunks) {
       filedata.completedDate =  Date.now();
     }
-    if (!filedata.filesize && !filedata._totalSize) {
+    if (!filedata.filesize && !filedata.totalSize) {
       filedata.filesize = 1;
     } else {
-      filedata.filesize = filedata._totalSize;
+      filedata.filesize = filedata.totalSize;
     }
     if (!filedata.filetype) {
-      filedata.filetype = filedata.type || filedata._filetype || 'application/octet-stream';
+      filedata.filetype = filedata.type || filedata.filetype || 'application/octet-stream';
     }
 
     for(var f in filedata) {
@@ -94,13 +78,13 @@ IxitFile.prototype.constructor = IxitFile;
 function dbValuesAssembly (fileObj) {
   if (fileObj.isTransformed) return fileObj;
   return {
-          filename: fileObj._filename,
+          filename: fileObj.filename,
           identifier: fileObj.identifier,
-          owner: fileObj._owner,
-          progress: fileObj._chunkNumber,
-          chunkCount: fileObj._totalChunks,
-          filetype: fileObj._filetype,
-          size: fileObj._totalSize,
+          owner: fileObj.owner,
+          progress: fileObj.chunkNumber,
+          chunkCount: fileObj.totalChunks,
+          filetype: fileObj.filetype,
+          size: fileObj.totalSize,
           folder: fileObj.filefolder,
           isTransformed: true
   }
@@ -118,8 +102,8 @@ var vFunc = {
     var d = Q.defer();
 
     //just beginning
-    if (fileObj._chunkNumber == 1) {
-      var q = Media.findOne({'owner': fileObj._owner, 'visible':1});
+    if (fileObj.chunkNumber == 1) {
+      var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
         if (err) {
@@ -129,10 +113,11 @@ var vFunc = {
         if (fileObj.folder === undefined || fileObj.folder === 'undefined') {
           delete fileObj.folder;
         }
-        if (fileObj._owner === undefined || fileObj._owner === 'undefined') {
+        if (fileObj.owner === undefined || fileObj.owner === 'undefined') {
           delete fileObj.owner;
         }
         if(!foundDoc){
+          console.log(dbValuesAssembly(fileObj));
           var media = new Media(dbValuesAssembly(fileObj));
 
           media.save(function(err, foundDoc){
@@ -155,8 +140,8 @@ var vFunc = {
       });
     }
     //if upload is complete
-    else if (fileObj._chunkNumber == fileObj._totalChunks){
-      var q = Media.findOne({'owner': fileObj._owner, 'visible':1});
+    else if (fileObj.chunkNumber == fileObj.totalChunks){
+      var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function (err, foundDoc) {
         if (err) {
@@ -234,7 +219,7 @@ var vFunc = {
     var fm = new Fm();
 
 
-    if(fileObj._chunkNumber === fileObj._totalChunks){
+    if(fileObj.chunkNumber === fileObj.totalChunks){
       //Create writeableStream.
       //Happens ONCE. after ^
       var filepath = path.join(fm.FILESTORAGEDIR, fileObj.identifier);
@@ -270,7 +255,7 @@ var vFunc = {
     debug('saveChunkToRedis');
     var q = Q.defer();
 
-    if ((fileObj._chunkNumber == fileObj._totalChunks) || fileObj._chunkNumber == 1) {
+    if ((fileObj.chunkNumber == fileObj.totalChunks) || fileObj.chunkNumber == 1) {
       redisClient.hmset(fileObj.identifier, _.pick(fileObj.fileDocument,
         ['progress', 'identifier', 'chunkCount', 'mediaNumber']),
         function (err){
@@ -283,7 +268,7 @@ var vFunc = {
     } else {
       vFunc.getChunkFromRedis(fileObj.identifier, redisClient)
       .then(function (fileDocument) {
-        fileDocument.progress = fileObj._chunkNumber;
+        fileDocument.progress = fileObj.chunkNumber;
 //         var extendedFileHash = _.extend(fileDocument, _.pick(fileObj,
 //         ['progress', 'identifier', 'chunkCount', 'mediaNumber']));
         redisClient.hmset(fileObj.identifier, fileDocument,
@@ -616,11 +601,11 @@ V4ult.prototype.s3uploader = function s3uploader (fileObj) {
 V4ult.prototype.getHandler = function  (params){
   var fm = new Fm(), q = Q.defer();
 
-  if(fm.validateRequest(params._chunkNumber, params._chunkSize, params._totalSize, params._chunkId, params._filename) === 'valid') {
-    var chunkFilename = fm.getChunkFilePath(params._chunkNumber, fm.vault_fileId(params));
+  if(fm.validateRequest(params.chunkNumber, params.chunkSize, params.totalSize, params.chunkId, params.filename) === 'valid') {
+    var chunkFilename = fm.getChunkFilePath(params.chunkNumber, fm.vault_fileId(params));
     fs.exists(chunkFilename, function(exists){
       if(exists){
-        return q.resolve({'chunkFilename': chunkFilename, 'filename': params._filename, 'identifier': params._chunkId});
+        return q.resolve({'chunkFilename': chunkFilename, 'filename': params.filename, 'identifier': params.chunkId});
       } else {
         return q.reject(errors.httpError(404));
       }
