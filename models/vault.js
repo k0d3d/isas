@@ -29,9 +29,6 @@ function V4ult(redis_client, jobQueue, s3client){
  * folder, filename, owner, chunkNumber, totalChunks
  */
 function IxitFile (filedata) {
-  // console.log(filedata);
-  // console.log(filedata[normalizer(filedata, 'filename')]);
-  // console.log(filedata[normalizer(filedata, 'owner')]);
     var self = this;
     if (!filedata && !arguments.length) {
       throw new Error('missing arguments for IxitFile constructor');
@@ -98,11 +95,10 @@ var vFunc = {
    * @return {Promise}       Promise
    */
   saveChunkToDB: function saveChunkToDB (fileObj) {
-    debug(fileObj);
     var d = Q.defer();
-
+    debug('Saving Chunk to DB');
     //just beginning
-    if (fileObj.chunkNumber == 1) {
+    if (fileObj.chunkNumber == 1 && fileObj.totalChunks > fileObj.chunkNumber) {
       var q = Media.findOne({'owner': fileObj.owner, 'visible':1});
       q.where('identifier', fileObj.identifier);
       q.exec(function(err, foundDoc ){
@@ -163,6 +159,8 @@ var vFunc = {
             }
         });
       })
+    } else {
+      d.resolve(fileObj);
     }
         //   Media.update({identifier: fileObj.identifier}, dbValuesAssembly(fileObj), function(err, done){
         //     if(err){
@@ -184,7 +182,6 @@ var vFunc = {
    */
   checkFolder: function checkFolder (fileObj) {
     var q = Q.defer();
-    debug('checkFolder');
 
     var cabinet = new Cabinet();
     cabinet.createFolder({
@@ -254,6 +251,8 @@ var vFunc = {
   saveChunkToRedis: function saveChunkToRedis (fileObj, redisClient) {
     debug('saveChunkToRedis');
     var q = Q.defer();
+
+    require('util').inspect(fileObj);
 
     if ((fileObj.chunkNumber == fileObj.totalChunks) || fileObj.chunkNumber == 1) {
       redisClient.hmset(fileObj.identifier, _.pick(fileObj.fileDocument,

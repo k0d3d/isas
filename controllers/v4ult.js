@@ -17,12 +17,15 @@ module.exports.routes = function(app, redis_client, jobQueue){
   //endpoint
   //
   app.post('/upload/automate', cors(appConfig.cors.options), function (req, res, next) {
-    var filename = 'ixitbot-' + Date.now() + '-Image.jpg';
+    var filename = req.body.filename = (!req.body.filename && !req.body.filename.length) ?
+      'ixitbot-' + Date.now() + '-' + req.body.filetype: req.body.filename;
+    req.body.identifier = new Filemanager().vault_fileId(req.body);
+
     var vault = new V4ult(redis_client, jobQueue);
     vault.postCompleteFileHandler(req.body)
     .then(function (file_result) {
-      var pathToWrite = fs.createWriteStream(path.join(process.cwd(), 'storage', filename ));
-      request(req.body.targetSrc).pipe(pathToWrite);
+      // var pathToWrite = fs.createWriteStream(path.join(process.cwd(), 'storage', filename ));
+      // request(req.body.targetSrc).pipe(pathToWrite);
       res.json(file_result);
     }, function (err) {
       next(err);
@@ -35,7 +38,7 @@ module.exports.routes = function(app, redis_client, jobQueue){
     // return res.status(400).json(400);
 
     //Check if this upload requires multipart or chunking operation
-    if (parseInt(req.fields._chunkNumber) === 1 && parseInt(req.fields._totalChunks) === 1 ) {
+    if (parseInt(req.fields.chunkNumber) === 1 && parseInt(req.fields.totalChunks) === 1 ) {
       v4ult.postOneChunkHandler(req.fields)
       .then(function(status){
         if (util.isError(status)) {
