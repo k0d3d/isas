@@ -113,7 +113,6 @@ var vFunc = {
           delete fileObj.owner;
         }
         if(!foundDoc){
-          console.log(dbValuesAssembly(fileObj));
           var media = new Media(dbValuesAssembly(fileObj));
 
           media.save(function(err, foundDoc){
@@ -130,6 +129,7 @@ var vFunc = {
             }
           });
         } else {
+          fileObj.fileDocument = foundDoc;
           d.resolve(fileObj);
           return d.promise;
         }
@@ -251,9 +251,6 @@ var vFunc = {
   saveChunkToRedis: function saveChunkToRedis (fileObj, redisClient) {
     debug('saveChunkToRedis');
     var q = Q.defer();
-
-    require('util').inspect(fileObj);
-
     if ((fileObj.chunkNumber == fileObj.totalChunks) || fileObj.chunkNumber == 1) {
       redisClient.hmset(fileObj.identifier, _.pick(fileObj.fileDocument,
         ['progress', 'identifier', 'chunkCount', 'mediaNumber']),
