@@ -7,3 +7,6 @@ v4nish
 temp
 storage
 chunks
+newrelic_agent.log
+sftp-config.json
+todo
