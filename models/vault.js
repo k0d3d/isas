@@ -144,9 +144,23 @@ var vFunc = {
           return d.reject(err);
         }
         if(!foundDoc){
+          var media = new Media(dbValuesAssembly(fileObj));
 
-          d.reject(errors.nounce('OperationFailed'));
-          return d.promise;
+          media.save(function(err, foundDoc){
+            if(err){
+              d.reject(err);
+            }else{
+              fileObj.fileDocument = foundDoc;
+              d.resolve(fileObj);
+              foundDoc.index(function(err){
+                if(err){
+                  debug(err);
+                }
+              });
+            }
+          });
+          // d.reject(errors.nounce('OperationFailed'));
+          // return d.promise;
         }
         foundDoc.progress =  dbValuesAssembly(fileObj).progress;
         foundDoc.completedDate = Date.now();

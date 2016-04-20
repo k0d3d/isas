@@ -77,12 +77,12 @@ module.exports.routes = function(app, redis_client, jobQueue){
 
   // Handle status checks on chunks through flow.js
   app.get('/upload',cors(appConfig.cors.options), userAuthd(redis_client), function(req, res){
-    debug('damn what a day');
     var fm = new Filemanager(req);
     var fields = _.extend({}, req.query, req.headers);
     v4ult.getHandler(fm.setFields(fields))
     .then(function(r){
-        res.status(200).json(r);
+        //possible hack
+        res.status(409).json(r);
     }, function (err) {
         res.status(404).json(err);
     });
