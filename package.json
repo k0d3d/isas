@@ -1,5 +1,5 @@
 {
-  "name": "IXIT-Media-Server",
+  "name": "IXIT_STORAGE_APPLICATION_SERVER",
   "version": "2.1.2",
   "description": "Handles file uploads and manages media ",
   "main": "server.js",
